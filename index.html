@@ -33,7 +33,6 @@
             line-height: 1.4;
         }
 
-        /* Password Overlay Styles */
         #loginOverlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -56,7 +55,6 @@
         }
         #mainContent { display: none; }
 
-        /* Rest of your existing styles */
         .cloud-status { font-size: 10px; text-align: center; color: #888; margin-bottom: 8px; }
         .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .card-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 10px; display: block; letter-spacing: 0.5px; }
@@ -123,7 +121,11 @@
                     <div class="split-selector" id="tempSplitSelector"></div>
                     <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); font-size:12px;">+ Add to Template</button>
                 </div>
-                <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); font-size:12px; margin-top:15px;">Apply Template to Current Month</button>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); font-size:11px; flex: 2;">Apply Template to Month</button>
+                    <button onclick="clearCurrentMonth()" class="btn-add" style="background:var(--danger); font-size:11px; flex: 1;">Clear Data</button>
+                </div>
             </div>
         </div>
 
@@ -154,34 +156,24 @@
     </div>
 
     <script>
-        // CONFIGURATION
-        const APP_PASSWORD = "@@"; // <--- CHANGE PASSWORD HERE
+        const APP_PASSWORD = "@@"; 
 
-        // PASSWORD LOGIC
         function checkPassword() {
             const input = document.getElementById('passInput').value;
             if (input === APP_PASSWORD) {
                 sessionStorage.setItem('roomiePay_auth', 'true');
                 unlockApp();
-            } else {
-                alert("Incorrect Password!");
-            }
+            } else { alert("Incorrect Password!"); }
         }
 
         function unlockApp() {
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            initApp(); // Start Firebase and Rendering
+            initApp();
         }
 
-        // Auto-unlock if already authenticated in this session
-        window.onload = () => {
-            if (sessionStorage.getItem('roomiePay_auth') === 'true') {
-                unlockApp();
-            }
-        };
+        window.onload = () => { if (sessionStorage.getItem('roomiePay_auth') === 'true') unlockApp(); };
 
-        // FIREBASE & APP LOGIC (Only runs after unlock)
         function initApp() {
             const firebaseConfig = {
                 apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
@@ -217,8 +209,18 @@
                 render();
             });
 
-            // Re-export functions to global scope for button clicks
             window.pushToCloud = () => db.ref('roomiePay_v2').set({ names: roommateNames, templates: templates, expenses: allExpenses });
+            
+            // CLEAR DATA FUNCTION
+            window.clearCurrentMonth = () => {
+                const currentMonthLabel = document.getElementById('monthDisplay').innerText;
+                if(confirm(`Are you sure you want to clear ALL items for ${currentMonthLabel}?`)) {
+                    const key = getMonthKey();
+                    allExpenses[key] = []; // Reset this month to empty array
+                    pushToCloud();
+                }
+            };
+
             window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
             window.toggleTemplateView = () => {
                 const sec = document.getElementById('templateSection');

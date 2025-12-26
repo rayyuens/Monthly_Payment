@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>RoomiePay Compact</title>
+    <title>RoomiePay Compact + Templates</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -30,7 +30,7 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center;
         }
-        .login-card { background: white; padding: 20px; border-radius: 16px; text-align: center; width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .login-card { background: white; padding: 20px; border-radius: 16px; text-align: center; width: 280px; }
         
         #mainContent { display: none; }
         .cloud-status { font-size: 10px; text-align: center; color: #888; margin-bottom: 8px; }
@@ -39,43 +39,35 @@
         .card-title { font-size: 10px; font-weight: 800; color: #8E8E93; text-transform: uppercase; margin-bottom: 10px; display: block; }
         
         .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: var(--card); padding: 8px 12px; border-radius: 12px; }
-        .month-label { font-weight: 700; font-size: 16px; color: var(--text); }
+        .month-label { font-weight: 700; font-size: 16px; }
         .nav-btn { background: #E5E5EA; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 14px; }
 
-        input { padding: 10px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; }
+        input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; }
 
-        .label-sm { font-size: 10px; color: #666; font-weight: 700; margin: 10px 0 5px 0; display: block; }
+        .label-sm { font-size: 9px; color: #666; font-weight: 700; margin: 8px 0 4px 0; display: block; }
         
-        /* SCALED DOWN SELECTION UI */
-        .split-selector { display: flex; gap: 6px; margin-bottom: 5px; }
+        .split-selector { display: flex; gap: 5px; margin-bottom: 5px; }
         .split-pill { 
-            flex: 1; background: #fff; padding: 8px 2px; border-radius: 10px; 
-            text-align: center; font-size: 12px; font-weight: 600;
-            display: flex; align-items: center; justify-content: center; gap: 5px; 
-            border: 1px solid var(--border); transition: 0.2s;
+            flex: 1; background: #fff; padding: 6px 2px; border-radius: 8px; 
+            text-align: center; font-size: 11px; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 4px; 
+            border: 1px solid var(--border);
         }
-        .split-pill input { width: 14px; height: 14px; margin: 0; } /* Smaller Checkboxes */
+        .split-pill input { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
-        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 14px; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
+        .btn-outline { background: none; color: var(--primary); border: 1px solid var(--primary); padding: 5px; font-size: 11px; border-radius: 8px; width: auto; display: block; margin: 0 auto 10px; }
 
-        .item-row { border-bottom: 1px solid #F2F2F7; padding: 12px 0; }
-        .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; margin-bottom: 8px; }
-        .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; }
+        .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
+        .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
+        .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
         
-        /* SUMMARY PANEL */
-        .summary-panel { 
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); 
-            padding: 12px; border-top: 1px solid #D1D1D6; z-index: 1000;
-        }
+        .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); padding: 10px; border-top: 1px solid #D1D1D6; z-index: 1000; }
         .summary-scroll { display: flex; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .user-summary-card { 
-            min-width: 120px; background: white; padding: 10px; 
-            border-radius: 12px; border: 1px solid #E5E5EA; 
-        }
-        .user-name-tag { font-size: 11px; font-weight: 900; color: var(--primary); text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #F2F2F7; }
-        .grand-total-tag { font-weight: 800; font-size: 13px; color: var(--danger); margin-top: 8px; border-top: 1px dashed #E5E5EA; }
+        .user-summary-card { min-width: 115px; background: white; padding: 8px; border-radius: 10px; border: 1px solid #E5E5EA; }
+        .user-name-tag { font-size: 10px; font-weight: 900; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #F2F2F7; }
+        .grand-total-tag { font-weight: 800; font-size: 13px; color: var(--danger); margin-top: 5px; border-top: 1px dashed #E5E5EA; }
     </style>
 </head>
 <body>
@@ -97,19 +89,32 @@
             <button class="nav-btn" onclick="changeMonth(1)">❯</button>
         </div>
 
+        <button class="btn-outline" onclick="toggleTemplateView()">⚙️ Manage Templates</button>
+        <div id="templateSection" class="card" style="display:none; background: #fefefe; border: 1px dashed var(--border);">
+            <span class="card-title">Recurring Items</span>
+            <div id="templateList" style="margin-bottom: 10px;"></div>
+            <div class="input-group" style="display:flex; gap:5px; margin-bottom:5px;">
+                <input type="text" id="tempName" placeholder="Name">
+                <input type="number" id="tempAmount" placeholder="$" style="width:30%">
+            </div>
+            <span class="label-sm">Usually Paid By:</span>
+            <div class="split-selector" id="tempPayerSelector"></div>
+            <span class="label-sm">Split Between:</span>
+            <div class="split-selector" id="tempSplitSelector"></div>
+            <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); margin-top:5px;">+ Save Template</button>
+            <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); margin-top:5px;">Apply to current month</button>
+        </div>
+
         <div class="card">
             <span class="card-title">Add Expense</span>
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                 <input type="text" id="itemName" placeholder="Item Name">
                 <input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
             </div>
-            
             <span class="label-sm">Who Paid Upfront?</span>
             <div class="split-selector" id="payerSelector"></div>
-            
             <span class="label-sm">Split Between:</span>
             <div class="split-selector" id="splitSelector"></div>
-            
             <button onclick="addItem()" class="btn-add">Add to List</button>
         </div>
 
@@ -127,6 +132,7 @@
         const APP_PASSWORD = "@@"; 
         let viewDate = new Date(); viewDate.setDate(1);
         let roommateNames = ["Ray", "Roy", "Irene"];
+        let templates = [];
         let allExpenses = {};
         let db;
 
@@ -154,10 +160,11 @@
             };
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
-            db.ref('roomiePay_v8').on('value', (snapshot) => {
+            db.ref('roomiePay_v9').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     roommateNames = data.names || ["Ray", "Roy", "Irene"];
+                    templates = data.templates || [];
                     allExpenses = data.expenses || {};
                 }
                 render();
@@ -165,7 +172,29 @@
             });
         }
 
-        window.pushToCloud = () => db.ref('roomiePay_v8').set({ names: roommateNames, expenses: allExpenses });
+        window.pushToCloud = () => db.ref('roomiePay_v9').set({ names: roommateNames, templates: templates, expenses: allExpenses });
+
+        window.addTemplateItem = () => {
+            const name = document.getElementById('tempName').value;
+            const amount = parseFloat(document.getElementById('tempAmount').value);
+            const payers = Array.from(document.querySelectorAll('.temp-payer-check')).map(n => n.checked);
+            const participants = Array.from(document.querySelectorAll('.temp-split-check')).map(n => n.checked);
+            if(name && amount) {
+                templates.push({ name, amount, payers, splitBetween: participants });
+                pushToCloud();
+            }
+        };
+
+        window.applyTemplates = () => {
+            const key = getMonthKey();
+            if (!allExpenses[key]) allExpenses[key] = [];
+            templates.forEach(t => {
+                let paidStatus = t.splitBetween.map((isPart, idx) => (isPart && t.payers[idx]));
+                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: t.splitBetween, paidBy: paidStatus });
+            });
+            pushToCloud();
+            document.getElementById('templateSection').style.display = 'none';
+        };
 
         window.addItem = () => {
             const name = document.getElementById('itemName').value;
@@ -194,24 +223,28 @@
             pushToCloud();
         };
 
+        window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
         window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
         function render() {
             const key = getMonthKey();
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-            document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `
-                <label class="split-pill payer-pill"><input type="checkbox" class="payer-check"><span>${n}</span></label>
-            `).join('');
-            document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `
-                <label class="split-pill"><input type="checkbox" class="split-check" checked><span>${n}</span></label>
-            `).join('');
+            const pHTML = (cls) => roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}"> ${n}</label>`).join('');
+            const sHTML = (cls) => roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="${cls}" checked> ${n}</label>`).join('');
+            
+            document.getElementById('payerSelector').innerHTML = pHTML('payer-check');
+            document.getElementById('splitSelector').innerHTML = sHTML('split-check');
+            document.getElementById('tempPayerSelector').innerHTML = pHTML('temp-payer-check');
+            document.getElementById('tempSplitSelector').innerHTML = sHTML('temp-split-check');
+
+            document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; margin-bottom:4px;">• ${t.name} ($${t.amount}) <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
 
             const monthItems = allExpenses[key] || [];
             const container = document.getElementById('listContainer');
-            container.innerHTML = '';
+            container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:12px;color:gray">Empty</p>' : '';
             
             let userStats = [[], [], []], userTotals = [0, 0, 0];
             monthItems.forEach(item => {
@@ -228,11 +261,11 @@
                 div.className = 'item-row';
                 div.innerHTML = `
                     <div class="item-header"><span>${item.name} ($${item.amount})</span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
-                    <div style="font-size:10px; color:#888; margin-bottom:8px;">Paid by: ${roommateNames.filter((_,i)=>item.payers && item.payers[i]).join(' & ')}</div>
-                    <div style="display:flex; gap:8px;">
+                    <div style="font-size:9px; color:#888; margin-bottom:5px;">Paid by: ${roommateNames.filter((_,i)=>item.payers && item.payers[i]).join(' & ')}</div>
+                    <div style="display:flex; gap:5px;">
                         ${roommateNames.map((name, index) => {
                             if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
-                            return `<label class="split-pill" style="padding:6px 0; font-size:11px; ${item.paidBy[index]?'background:#eee; border-color:#eee; opacity:0.5':''}">
+                            return `<label class="split-pill" style="padding:4px 0; font-size:10px; ${item.paidBy[index]?'background:#eee; border-color:#eee; opacity:0.5':''}">
                                 <input type="checkbox" ${item.paidBy[index]?'checked':''} onchange="togglePaid(${item.id}, ${index})"> ${name}
                             </label>`;
                         }).join('')}
@@ -243,7 +276,7 @@
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-card">
                     <div class="user-name-tag">${name}</div>
-                    ${userStats[i].map(d => `<div style="font-size:10px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(0)}</span></div>`).join('')}
+                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(0)}</span></div>`).join('')}
                     <div class="grand-total-tag">${userTotals[i]<=0 ? '✅' : '$' + userTotals[i].toFixed(0)}</div>
                 </div>`).join('');
         }

@@ -78,6 +78,10 @@
         .delete-btn { background: #FFE5E5; color: var(--danger); border: none; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; }
         .roommates-grid { display: flex; gap: 5px; margin-top: 8px; }
         .check-box { width: 33.33%; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; background: #F9F9F9; padding: 8px 2px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600; }
+        
+        /* Clear Data Button Style */
+        .btn-clear-all { background: none; color: var(--danger); border: 1px solid var(--danger); padding: 8px; border-radius: 10px; font-size: 11px; font-weight: 600; width: 100%; margin-top: 15px; opacity: 0.7; }
+        
         .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 10px 10px 25px 10px; border-top: 1px solid var(--border); z-index: 1000; max-height: 250px; overflow-y: auto; }
         .summary-grid { display: flex; gap: 8px; overflow-x: auto; }
         .user-summary-column { flex: 1; min-width: 100px; background: white; padding: 8px; border-radius: 10px; border: 1px solid #eee; }
@@ -121,11 +125,7 @@
                     <div class="split-selector" id="tempSplitSelector"></div>
                     <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); font-size:12px;">+ Add to Template</button>
                 </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); font-size:11px; flex: 2;">Apply Template to Month</button>
-                    <button onclick="clearCurrentMonth()" class="btn-add" style="background:var(--danger); font-size:11px; flex: 1;">Clear Data</button>
-                </div>
+                <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); font-size:12px; margin-top:15px;">Apply Template to Current Month</button>
             </div>
         </div>
 
@@ -148,7 +148,12 @@
             <button onclick="addItem()" class="btn-add">Add Expense</button>
         </div>
 
-        <div class="card" id="listContainer"></div>
+        <div class="card">
+            <span class="card-title">Monthly Checklist</span>
+            <div id="listContainer"></div>
+            
+            <button id="clearBtn" onclick="clearCurrentMonth()" class="btn-clear-all">🗑️ Clear Current Month Data</button>
+        </div>
 
         <div class="summary-panel">
             <div class="summary-grid" id="summaryGrid"></div>
@@ -214,9 +219,9 @@
             // CLEAR DATA FUNCTION
             window.clearCurrentMonth = () => {
                 const currentMonthLabel = document.getElementById('monthDisplay').innerText;
-                if(confirm(`Are you sure you want to clear ALL items for ${currentMonthLabel}?`)) {
+                if(confirm(`⚠️ Are you sure? This will delete ALL data for ${currentMonthLabel}.`)) {
                     const key = getMonthKey();
-                    allExpenses[key] = []; // Reset this month to empty array
+                    allExpenses[key] = [];
                     pushToCloud();
                 }
             };
@@ -318,6 +323,10 @@
 
                 const monthItems = allExpenses[key] || [];
                 const container = document.getElementById('listContainer');
+                
+                // Show/Hide Clear Button based on if items exist
+                document.getElementById('clearBtn').style.display = monthItems.length > 0 ? 'block' : 'none';
+
                 container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills. Click template or add new.</p>' : '';
                 
                 let userStats = [[], [], []]; let userTotals = [0, 0, 0];

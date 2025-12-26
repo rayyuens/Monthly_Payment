@@ -41,8 +41,8 @@
         .split-pill input { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
-        /* PAID STATE GREEN */
-        .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; }
+        .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; opacity: 0.9; }
+        .pill-paid input { opacity: 0.5; }
 
         .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
@@ -96,8 +96,8 @@
             <div class="split-selector" id="tempSplitSelector"></div>
             
             <div style="display:flex; gap:8px;">
-                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save</button>
-                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply</button>
+                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save New</button>
+                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
             </div>
         </div>
 
@@ -111,13 +111,13 @@
             <div class="split-selector" id="payerSelector"></div>
             <span class="label-sm">Split Between:</span>
             <div class="split-selector" id="splitSelector"></div>
-            <button onclick="addItem()" class="btn-add">Add</button>
+            <button onclick="addItem()" class="btn-add">Add to List</button>
         </div>
 
         <div class="card">
             <span class="card-title">Checklist</span>
             <div id="listContainer"></div>
-            <button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear All</button>
+            <button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear All for this Month</button>
         </div>
 
         <div class="summary-panel">
@@ -176,7 +176,6 @@
             const amount = parseFloat(document.getElementById('tempAmount').value);
             const payers = Array.from(document.querySelectorAll('.temp-payer-check')).map(n => n.checked);
             const splits = Array.from(document.querySelectorAll('.temp-split-check')).map(n => n.checked);
-            
             if(name && amount) {
                 templates.push({ name, amount, payers, splitBetween: splits });
                 document.getElementById('tempName').value = ''; document.getElementById('tempAmount').value = '';
@@ -222,6 +221,7 @@
         window.togglePaid = (id, userIdx) => {
             const key = getMonthKey();
             const item = allExpenses[key].find(e => e.id === id);
+            // Toggle normally, but render handles disabling checked ones
             if (item) { item.paidBy[userIdx] = !item.paidBy[userIdx]; pushToCloud(); }
         };
 
@@ -248,11 +248,7 @@
 
             document.getElementById('templateList').innerHTML = templates.map((t, i) => {
                 const splittingWith = roommateNames.filter((_, idx) => t.splitBetween ? t.splitBetween[idx] : true).join(', ');
-                return `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">
-                    • ${t.name} ($${t.amount}) <br>
-                    <small style="color:#888">Split: ${splittingWith}</small>
-                    <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span>
-                </div>`
+                return `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) <br><small style="color:#888">Split: ${splittingWith}</small><span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`
             }).join('');
 
             const monthItems = allExpenses[key] || [];
@@ -263,8 +259,6 @@
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
                 const perPerson = item.amount / count;
-                
-                // Determine who paid for the label
                 const actualPayer = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ') || 'Unknown';
 
                 item.splitBetween.forEach((isPart, idx) => {
@@ -286,7 +280,7 @@
                             if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
                             const isPaid = item.paidBy[index];
                             return `<label class="split-pill ${isPaid ? 'pill-paid' : ''}" style="padding:4px 0; font-size:10px;">
-                                <input type="checkbox" ${isPaid ? 'checked' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
+                                <input type="checkbox" ${isPaid ? 'checked disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
                             </label>`;
                         }).join('')}
                     </div>`;
@@ -303,4 +297,3 @@
     </script>
 </body>
 </html>
-

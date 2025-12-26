@@ -41,14 +41,13 @@
         .split-pill input { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
-        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; cursor: pointer; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
         .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
         
-        /* SUMMARY PANEL FIX */
         .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); padding: 12px; border-top: 1px solid #D1D1D6; z-index: 1000; }
         .summary-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
         .user-summary-card { min-width: 130px; flex-shrink: 0; background: white; padding: 10px; border-radius: 12px; border: 1px solid #E5E5EA; }
@@ -89,9 +88,9 @@
             <span class="label-sm">Usually Paid By:</span>
             <div class="split-selector" id="tempPayerSelector"></div>
             
-            <div style="display:flex; gap:8px;">
-                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save New</button>
-                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
+            <div style="display:flex; gap:8px; margin-top: 10px;">
+                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93; flex: 1;">Save New</button>
+                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success); flex: 1.5;">Apply All Now</button>
             </div>
         </div>
 
@@ -178,9 +177,22 @@
         window.applyTemplates = () => {
             const key = getMonthKey();
             if (!allExpenses[key]) allExpenses[key] = [];
+            
+            if (templates.length === 0) {
+                alert("No templates saved to apply.");
+                return;
+            }
+
             templates.forEach(t => {
                 let paidStatus = t.splitBetween.map((isPart, idx) => (isPart && t.payers[idx]));
-                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: t.splitBetween, paidBy: paidStatus });
+                allExpenses[key].push({ 
+                    id: Date.now() + Math.random(), 
+                    name: t.name, 
+                    amount: t.amount, 
+                    payers: t.payers, 
+                    splitBetween: t.splitBetween, 
+                    paidBy: paidStatus 
+                });
             });
             pushToCloud();
             document.getElementById('templateSection').style.display = 'none';
@@ -213,7 +225,11 @@
             pushToCloud();
         };
 
-        window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
+        window.toggleTemplateView = () => { 
+            const s = document.getElementById('templateSection'); 
+            s.style.display = (s.style.display==='block'?'none':'block'); 
+        };
+        
         window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
@@ -226,7 +242,7 @@
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
             document.getElementById('tempPayerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="temp-payer-check"> ${n}</label>`).join('');
 
-            document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
+            document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) <span style="color:red; float:right; cursor:pointer;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
 
             const monthItems = allExpenses[key] || [];
             const container = document.getElementById('listContainer');
@@ -235,7 +251,7 @@
             let userStats = [[], [], []], userTotals = [0, 0, 0];
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
-                const perPerson = item.amount / count;
+                const perPerson = item.amount / (count || 1);
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
                         userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });

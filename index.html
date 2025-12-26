@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- iPhone App Mode Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/602/602175.png">
+    <title>RoomiePay Cloud</title>
     
-    <title>RoomiePay</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --primary: #007AFF;
@@ -26,106 +28,41 @@
             color: var(--text);
             margin: 0;
             padding: 15px;
-            padding-bottom: 320px; /* Space for the large summary */
+            padding-bottom: 320px;
             line-height: 1.4;
         }
 
-        /* Month Navigator */
-        .month-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            background: var(--card);
-            padding: 12px;
-            border-radius: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
+        .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--card); padding: 12px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .month-label { font-weight: 800; font-size: 18px; color: var(--primary); }
-        .nav-btn { 
-            background: var(--border); border: none; border-radius: 50%; 
-            width: 36px; height: 36px; font-size: 18px; 
-            display: flex; align-items: center; justify-content: center;
-        }
-
+        .nav-btn { background: var(--border); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; display: flex; align-items: center; justify-content: center; }
         .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .card-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 12px; display: block; letter-spacing: 0.5px; }
-        
-        /* Fixed Name Inputs */
         .name-editor { display: flex; gap: 8px; flex-wrap: wrap; }
-        .name-editor input { 
-            flex: 1; min-width: 80px; padding: 10px; border-radius: 10px; 
-            border: 1px solid var(--border); font-size: 14px; text-align: center; background: #fdfdfd; 
-        }
-
+        .name-editor input { flex: 1; min-width: 80px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; text-align: center; background: #fdfdfd; }
         .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
-        input[type="text"], input[type="number"] { 
-            padding: 12px; border-radius: 10px; border: 1px solid var(--border); 
-            font-size: 16px; width: 100%; box-sizing: border-box;
-        }
-
-        button { 
-            background: var(--primary); color: white; border: none; 
-            padding: 14px; border-radius: 12px; font-weight: 600; 
-            font-size: 16px; display: flex; align-items: center; justify-content: center; 
-        }
-
-        /* Fixed Split Selector - Wrapping enabled to prevent overlap */
+        input[type="text"], input[type="number"] { padding: 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 16px; width: 100%; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .split-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-        .split-pill { 
-            flex: 1; min-width: 90px; background: #F2F2F7; padding: 10px 5px; 
-            border-radius: 10px; text-align: center; font-size: 12px; 
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            border: 1px solid transparent;
-        }
-        .split-pill input { margin: 0; width: 18px; height: 18px; }
-
-        /* Item Rows */
+        .split-pill { flex: 1; min-width: 90px; background: #F2F2F7; padding: 10px 5px; border-radius: 10px; text-align: center; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; }
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 15px 0; }
-        .item-row:last-child { border-bottom: none; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; }
-        
-        .delete-btn { 
-            background: #FFE5E5; color: var(--danger); border: none; 
-            width: 28px; height: 28px; border-radius: 50%; 
-            font-size: 14px; font-weight: bold; padding: 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Checkbox Buttons - No more overlap */
+        .delete-btn { background: #FFE5E5; color: var(--danger); border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         .roommates-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-        .check-box { 
-            flex: 1; min-width: 100px; display: flex; align-items: center; justify-content: center; 
-            gap: 8px; font-size: 13px; background: #F9F9F9; padding: 10px; 
-            border-radius: 10px; border: 1px solid var(--border); font-weight: 500;
-        }
-        .check-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        /* Bottom Summary Panel */
-        .summary-panel { 
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            padding: 15px 12px 30px 12px; border-top: 1px solid var(--border); 
-            z-index: 1000; max-height: 290px; overflow-y: auto;
-        }
+        .check-box { flex: 1; min-width: 100px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; background: #F9F9F9; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-weight: 500; }
+        .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 15px 12px 30px 12px; border-top: 1px solid var(--border); z-index: 1000; max-height: 290px; overflow-y: auto; }
         .summary-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
-        .user-summary-column { 
-            flex: 1; min-width: 110px; background: #fdfdfd; 
-            padding: 10px; border-radius: 12px; border: 1px solid #eee; 
-        }
-        
+        .user-summary-column { flex: 1; min-width: 110px; background: #fdfdfd; padding: 10px; border-radius: 12px; border: 1px solid #eee; }
         .user-name { font-size: 11px; font-weight: 800; color: var(--primary); margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 4px; }
         .item-debt { font-size: 11px; color: #444; margin-bottom: 5px; display: flex; justify-content: space-between; }
         .item-debt.paid { color: var(--success); text-decoration: line-through; opacity: 0.6; }
-
         .grand-total { font-weight: 800; font-size: 15px; color: var(--danger); text-align: right; margin-top: 10px; padding-top: 5px; border-top: 1px dotted #ccc; }
         .grand-total.all-paid { color: var(--success); }
-
-        .sync-btns { display: flex; gap: 8px; margin-top: 5px; }
-        .secondary-btn { background: #8E8E93; font-size: 12px; padding: 10px; flex: 1; }
+        .cloud-status { font-size: 10px; text-align: center; color: #888; margin-bottom: 5px; }
     </style>
 </head>
 <body>
+
+    <div class="cloud-status" id="cloudStatus">Connecting to RoomiePay Cloud...</div>
 
     <div class="month-nav">
         <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
@@ -136,9 +73,9 @@
     <div class="card">
         <span class="card-title">Roommate Names</span>
         <div class="name-editor">
-            <input type="text" id="name0" oninput="saveNames()" placeholder="Name 1">
-            <input type="text" id="name1" oninput="saveNames()" placeholder="Name 2">
-            <input type="text" id="name2" oninput="saveNames()" placeholder="Name 3">
+            <input type="text" id="name0" onchange="saveNames()" placeholder="Name 1">
+            <input type="text" id="name1" onchange="saveNames()" placeholder="Name 2">
+            <input type="text" id="name2" onchange="saveNames()" placeholder="Name 3">
         </div>
     </div>
 
@@ -149,15 +86,13 @@
             <input type="number" id="itemAmount" placeholder="$">
         </div>
         <div class="split-selector" id="addSplitSelector"></div>
-        <button onclick="addItem()" style="width:100%">Add to Shared List</button>
+        <button onclick="addItem()" style="width:100%">Add & Sync to Cloud</button>
     </div>
 
     <div class="card" id="listContainer"></div>
 
-    <div class="sync-btns">
-        <button class="secondary-btn" onclick="exportData()">Copy Data</button>
-        <button class="secondary-btn" onclick="importData()">Import Data</button>
-        <button class="secondary-btn" style="background:#FF9500" onclick="clearMonth()">Clear</button>
+    <div style="display: flex; gap: 8px; margin-top: 10px;">
+        <button onclick="clearMonth()" style="background:#FF9500; font-size: 12px; padding: 10px; flex: 1;">Clear Month Data</button>
     </div>
 
     <div class="summary-panel">
@@ -166,20 +101,61 @@
     </div>
 
     <script>
+        // --- 1. FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
+            authDomain: "roomiepay-76a38.firebaseapp.com",
+            databaseURL: "https://roomiepay-76a38-default-rtdb.firebaseio.com",
+            projectId: "roomiepay-76a38",
+            storageBucket: "roomiepay-76a38.firebasestorage.app",
+            messagingSenderId: "11901948810",
+            appId: "1:11901948810:web:d33affa770bb53c4d62e73",
+            measurementId: "G-212BRD6Z9R"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- 2. APP STATE ---
         let viewDate = new Date(); viewDate.setDate(1);
-        let roommateNames = JSON.parse(localStorage.getItem('roomiePay_Names')) || ["Alex", "Jordan", "Taylor"];
-        let allData = JSON.parse(localStorage.getItem('roomiePay_Final_V4')) || {};
+        let roommateNames = ["Alex", "Jordan", "Taylor"];
+        let allData = {};
 
-        roommateNames.forEach((n, i) => document.getElementById(`name${i}`).value = n);
+        // --- 3. CLOUD SYNC LOGIC ---
+        // Listen for cloud updates
+        db.ref('roomiePay_Live').on('value', (snapshot) => {
+            const cloudData = snapshot.val();
+            if (cloudData) {
+                allData = cloudData.expenses || {};
+                roommateNames = cloudData.names || ["Alex", "Jordan", "Taylor"];
+                
+                // Sync UI Inputs
+                roommateNames.forEach((n, i) => {
+                    const el = document.getElementById(`name${i}`);
+                    if(el) el.value = n;
+                });
+            }
+            document.getElementById('cloudStatus').innerText = "● Cloud Connected & Live";
+            render();
+        });
 
+        function pushToCloud() {
+            document.getElementById('cloudStatus').innerText = "Syncing...";
+            db.ref('roomiePay_Live').set({
+                names: roommateNames,
+                expenses: allData
+            });
+        }
+
+        // --- 4. FUNCTIONS ---
         function saveNames() {
             roommateNames = [
                 document.getElementById('name0').value || "User 1",
                 document.getElementById('name1').value || "User 2",
                 document.getElementById('name2').value || "User 3"
             ];
-            localStorage.setItem('roomiePay_Names', JSON.stringify(roommateNames));
-            render();
+            pushToCloud();
         }
 
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
@@ -189,29 +165,39 @@
             const name = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('itemAmount').value);
             const participants = Array.from(document.querySelectorAll('.participant')).map(n => n.checked);
+            
             if (name && amount && participants.includes(true)) {
                 const key = getMonthKey();
                 if (!allData[key]) allData[key] = [];
                 allData[key].push({ id: Date.now(), name, amount, splitBetween: participants, paidBy: [false, false, false] });
-                saveAndRender();
+                
+                pushToCloud();
                 document.getElementById('itemName').value = '';
                 document.getElementById('itemAmount').value = '';
             }
         }
 
         function togglePaid(id, idx) {
-            const item = allData[getMonthKey()].find(e => e.id === id);
-            item.paidBy[idx] = !item.paidBy[idx];
-            saveAndRender();
+            const key = getMonthKey();
+            const item = allData[key].find(e => e.id === id);
+            if (item) {
+                item.paidBy[idx] = !item.paidBy[idx];
+                pushToCloud();
+            }
         }
 
         function deleteItem(id) {
-            allData[getMonthKey()] = allData[getMonthKey()].filter(e => e.id !== id);
-            saveAndRender();
+            const key = getMonthKey();
+            allData[key] = allData[key].filter(e => e.id !== id);
+            pushToCloud();
         }
 
-        function clearMonth() { if(confirm("Clear month?")) { allData[getMonthKey()] = []; saveAndRender(); } }
-        function saveAndRender() { localStorage.setItem('roomiePay_Final_V4', JSON.stringify(allData)); render(); }
+        function clearMonth() { 
+            if(confirm("Permanently delete this month's data from cloud?")) { 
+                allData[getMonthKey()] = []; 
+                pushToCloud(); 
+            } 
+        }
 
         function render() {
             const key = getMonthKey();
@@ -225,9 +211,10 @@
             const monthItems = allData[key] || [];
             const container = document.getElementById('listContainer');
             const summaryGrid = document.getElementById('summaryGrid');
-            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; padding:20px;">No expenses.</p>' : '';
+            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; padding:20px;">No expenses found.</p>' : '';
             
-            let userStatments = [[], [], []]; let userRemaining = [0, 0, 0];
+            let userStatments = [[], [], []]; 
+            let userRemaining = [0, 0, 0];
 
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
@@ -277,17 +264,6 @@
             `).join('');
         }
 
-        function exportData() { navigator.clipboard.writeText(JSON.stringify({ names: roommateNames, data: allData })); alert("Data Copied!"); }
-        function importData() {
-            const data = prompt("Paste data:");
-            if (data) { 
-                try { 
-                    const p = JSON.parse(data); 
-                    if(p.names) { roommateNames = p.names; roommateNames.forEach((n, i) => document.getElementById(`name${i}`).value = n); }
-                    allData = p.data || p; saveAndRender(); 
-                } catch(e) { alert("Error!"); }
-            }
-        }
         render();
     </script>
 </body>

@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/602/602175.png">
-    <title>RoomiePay Cloud + Templates</title>
+    <title>RoomiePay Cloud + Advanced Templates</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -47,15 +47,17 @@
 
         /* Template Styles */
         .template-section { display: none; border-top: 1px solid #eee; margin-top: 10px; padding-top: 10px; }
-        .template-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; background: #f9f9f9; padding: 6px 10px; border-radius: 8px; margin-bottom: 5px; }
-        .toggle-template-btn { background: none; color: var(--primary); font-size: 12px; font-weight: bold; border: 1px solid var(--primary); padding: 5px 10px; border-radius: 20px; width: auto; margin: 0 auto 10px; }
+        .template-item { background: #f9f9f9; padding: 8px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #f0f0f0; }
+        .template-item-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .template-item-users { font-size: 10px; color: #666; font-style: italic; }
+        .toggle-template-btn { background: none; color: var(--primary); font-size: 12px; font-weight: bold; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 20px; width: auto; margin: 0 auto 10px; }
 
         .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
         input[type="text"], input[type="number"] { padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; width: 100%; box-sizing: border-box; }
         
-        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; margin-top: 5px;}
 
-        .split-selector { display: flex; gap: 4px; margin-bottom: 10px; }
+        .split-selector { display: flex; gap: 4px; margin-bottom: 5px; }
         .split-pill { flex: 1; background: #F2F2F7; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; border: 1px solid transparent; }
         .split-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -93,14 +95,17 @@
     <div class="card" style="text-align: center;">
         <button class="toggle-template-btn" onclick="toggleTemplateView()">⚙️ Manage Monthly Templates</button>
         <div id="templateSection" class="template-section">
-            <span class="card-title">Recurring Bills (Template)</span>
+            <span class="card-title">Recurring Bills Template</span>
             <div id="templateList"></div>
-            <div class="input-group" style="margin-top:10px;">
-                <input type="text" id="tempName" placeholder="e.g. Rent">
-                <input type="number" id="tempAmount" placeholder="$">
+            <div style="border: 1px dashed #ccc; padding: 10px; border-radius: 10px; margin-top: 10px;">
+                <div class="input-group">
+                    <input type="text" id="tempName" placeholder="Template Name">
+                    <input type="number" id="tempAmount" placeholder="$">
+                </div>
+                <div class="split-selector" id="tempSplitSelector"></div>
+                <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); font-size:12px;">+ Add to Template</button>
             </div>
-            <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); padding:8px; font-size:12px; margin-bottom:8px;">+ Add to Template</button>
-            <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); padding:8px; font-size:12px;">Apply Template to Current Month</button>
+            <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); font-size:12px; margin-top:15px;">Apply Template to Current Month</button>
         </div>
     </div>
 
@@ -145,19 +150,16 @@
         const db = firebase.database();
 
         let viewDate = new Date(); viewDate.setDate(1);
-        let roommateNames = ["Alex", "Jordan", "Taylor"];
-        let templates = []; // Array of {name, amount}
-        let allExpenses = {}; // { "2023-12": [...] }
+        let roommateNames = ["Ray", "Roy", "Irene"];
+        let templates = []; 
+        let allExpenses = {};
 
-        // --- CLOUD SYNC ---
         db.ref('roomiePay_v2').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 roommateNames = data.names || ["Alex", "Jordan", "Taylor"];
                 templates = data.templates || [];
                 allExpenses = data.expenses || {};
-                
-                // Sync Names to Inputs
                 roommateNames.forEach((n, i) => {
                     const el = document.getElementById(`name${i}`);
                     if(el) el.value = n;
@@ -168,14 +170,9 @@
         });
 
         function pushToCloud() {
-            db.ref('roomiePay_v2').set({
-                names: roommateNames,
-                templates: templates,
-                expenses: allExpenses
-            });
+            db.ref('roomiePay_v2').set({ names: roommateNames, templates: templates, expenses: allExpenses });
         }
 
-        // --- LOGIC ---
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
         function toggleTemplateView() {
@@ -186,8 +183,10 @@
         function addTemplateItem() {
             const name = document.getElementById('tempName').value;
             const amount = parseFloat(document.getElementById('tempAmount').value);
-            if(name && amount) {
-                templates.push({ name, amount });
+            const participants = Array.from(document.querySelectorAll('.temp-participant')).map(n => n.checked);
+            
+            if(name && amount && participants.includes(true)) {
+                templates.push({ name, amount, splitBetween: participants });
                 document.getElementById('tempName').value = '';
                 document.getElementById('tempAmount').value = '';
                 pushToCloud();
@@ -208,7 +207,7 @@
                     id: Date.now() + Math.random(),
                     name: t.name,
                     amount: t.amount,
-                    splitBetween: [true, true, true],
+                    splitBetween: t.splitBetween || [true, true, true],
                     paidBy: [false, false, false]
                 });
             });
@@ -258,35 +257,44 @@
             pushToCloud();
         }
 
-        // --- RENDER ---
         function render() {
             const key = getMonthKey();
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
             // Render Template List
-            document.getElementById('templateList').innerHTML = templates.map((t, i) => `
+            document.getElementById('templateList').innerHTML = templates.map((t, i) => {
+                const names = roommateNames.filter((_, idx) => t.splitBetween && t.splitBetween[idx]).join(', ');
+                return `
                 <div class="template-item">
-                    <span>${t.name} ($${t.amount})</span>
-                    <span style="color:red" onclick="removeTemplateItem(${i})">✕</span>
+                    <div class="template-item-top">
+                        <span>${t.name} ($${t.amount})</span>
+                        <span style="color:red; font-size:14px" onclick="removeTemplateItem(${i})">✕</span>
+                    </div>
+                    <div class="template-item-users">Split: ${names || 'None'}</div>
                 </div>
-            `).join('');
+            `}).join('');
 
-            // Render Split Pills
-            document.getElementById('addSplitSelector').innerHTML = roommateNames.map((n, i) => `
+            // Update Selectors (Normal & Template)
+            const selectorsHTML = roommateNames.map((n, i) => `
                 <label class="split-pill"><input type="checkbox" class="participant" checked> <span>${n}</span></label>
             `).join('');
+            document.getElementById('addSplitSelector').innerHTML = selectorsHTML;
+
+            const tempSelectorsHTML = roommateNames.map((n, i) => `
+                <label class="split-pill"><input type="checkbox" class="temp-participant" checked> <span>${n}</span></label>
+            `).join('');
+            document.getElementById('tempSplitSelector').innerHTML = tempSelectorsHTML;
 
             const monthItems = allExpenses[key] || [];
             const container = document.getElementById('listContainer');
-            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills this month. Click template or add new.</p>' : '';
+            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills. Click template or add new.</p>' : '';
             
             let userStats = [[], [], []]; let userTotals = [0, 0, 0];
 
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
                 const perPerson = item.amount / count;
-                
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
                         userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
@@ -316,7 +324,6 @@
                 container.appendChild(div);
             });
 
-            // Summary Render
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-column">
                     <div class="user-name">${name}</div>
@@ -325,7 +332,6 @@
                 </div>
             `).join('');
         }
-
         render();
     </script>
 </body>

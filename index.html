@@ -33,7 +33,6 @@
             line-height: 1.4;
         }
 
-        /* --- FIXED LOGIN OVERLAY FOR MOBILE --- */
         #loginOverlay {
             position: fixed;
             top: 0; left: 0; 
@@ -41,8 +40,8 @@
             background: var(--bg);
             z-index: 9999;
             display: flex;
-            align-items: center;    /* Vertically center */
-            justify-content: center; /* Horizontally center */
+            align-items: center; 
+            justify-content: center;
         }
         .login-card {
             background: white;
@@ -52,10 +51,7 @@
             text-align: center;
             width: 85%;
             max-width: 300px;
-            position: relative;
-            top: -5%; /* Visual optical adjustment for mobile keyboards */
         }
-        /* Prevents iOS zoom on focus by using 16px font */
         #passInput {
             margin-bottom: 15px;
             text-align: center;
@@ -179,6 +175,11 @@
 
     <script>
         const APP_PASSWORD = "@@"; 
+        let viewDate = new Date(); viewDate.setDate(1);
+        let roommateNames = ["Ray", "Roy", "Irene"];
+        let templates = []; 
+        let allExpenses = {};
+        let db;
 
         function checkPassword() {
             const input = document.getElementById('passInput').value;
@@ -201,22 +202,11 @@
                 apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
                 authDomain: "roomiepay-76a38.firebaseapp.com",
                 databaseURL: "https://roomiepay-76a38-default-rtdb.firebaseio.com",
-                projectId: "roomiepay-76a38",
-                storageBucket: "roomiepay-76a38.firebasestorage.app",
-                messagingSenderId: "11901948810",
-                appId: "1:11901948810:web:d33affa770bb53c4d62e73",
-                measurementId: "G-212BRD6Z9R"
+                projectId: "roomiepay-76a38"
             };
 
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            const db = firebase.database();
-
-            let viewDate = new Date(); viewDate.setDate(1);
-            let roommateNames = ["Ray", "Roy", "Irene"];
-            let templates = []; 
-            let allExpenses = {};
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
 
             db.ref('roomiePay_v2').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -224,102 +214,111 @@
                     roommateNames = data.names || ["Ray", "Roy", "Irene"];
                     templates = data.templates || [];
                     allExpenses = data.expenses || {};
-                    roommateNames.forEach((n, i) => {
-                        const el = document.getElementById(name${i});
-                        if(el) el.value = n;
-                    });
                 }
                 document.getElementById('cloudStatus').innerText = "● Live Sync Active";
                 render();
             });
+        }
 
-            window.pushToCloud = () => db.ref('roomiePay_v2').set({ names: roommateNames, templates: templates, expenses: allExpenses });
-            
-            window.clearCurrentMonth = () => {
-                const currentMonthLabel = document.getElementById('monthDisplay').innerText;
-                if(confirm(⚠️ Are you sure? This will delete ALL data for ${currentMonthLabel}.)) {
-                    const key = getMonthKey();
-                    allExpenses[key] = [];
-                    pushToCloud();
-                }
-            };
+        window.pushToCloud = () => db.ref('roomiePay_v2').set({ names: roommateNames, templates: templates, expenses: allExpenses });
+        
+        window.clearCurrentMonth = () => {
+            const currentMonthLabel = document.getElementById('monthDisplay').innerText;
+            if(confirm(`⚠️ Are you sure? This will delete ALL data for ${currentMonthLabel}.`)) {
+                allExpenses[getMonthKey()] = [];
+                pushToCloud();
+            }
+        };
 
-            window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
-            window.toggleTemplateView = () => {
-                const sec = document.getElementById('templateSection');
-                sec.style.display = sec.style.display === 'block' ? 'none' : 'block';
-            };
-            window.addTemplateItem = () => {
-                const name = document.getElementById('tempName').value;
-                const amount = parseFloat(document.getElementById('tempAmount').value);
-                const participants = Array.from(document.querySelectorAll('.temp-participant')).map(n => n.checked);
-                if(name && amount && participants.includes(true)) {
-                    templates.push({ name, amount, splitBetween: participants });
-                    document.getElementById('tempName').value = '';
-                    document.getElementById('tempAmount').value = '';
-                    pushToCloud();
-                }
-            };
-            window.removeTemplateItem = (idx) => { templates.splice(idx, 1); pushToCloud(); };
-            window.applyTemplates = () => {
+        window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
+        window.toggleTemplateView = () => {
+            const sec = document.getElementById('templateSection');
+            sec.style.display = sec.style.display === 'block' ? 'none' : 'block';
+        };
+        
+        window.addTemplateItem = () => {
+            const name = document.getElementById('tempName').value;
+            const amount = parseFloat(document.getElementById('tempAmount').value);
+            const participants = Array.from(document.querySelectorAll('.temp-participant')).map(n => n.checked);
+            if(name && amount && participants.includes(true)) {
+                templates.push({ name, amount, splitBetween: participants });
+                document.getElementById('tempName').value = '';
+                document.getElementById('tempAmount').value = '';
+                pushToCloud();
+            }
+        };
+
+        window.removeTemplateItem = (idx) => { templates.splice(idx, 1); pushToCloud(); };
+
+        window.applyTemplates = () => {
+            const key = getMonthKey();
+            if (!allExpenses[key]) allExpenses[key] = [];
+            templates.forEach(t => {
+                allExpenses[key].push({
+                    id: Date.now() + Math.random(),
+                    name: t.name,
+                    amount: t.amount,
+                    splitBetween: t.splitBetween || [true, true, true],
+                    paidBy: [false, false, false]
+                });
+            });
+            pushToCloud();
+        };
+
+        window.saveSettings = () => {
+            roommateNames = [
+                document.getElementById('name0').value || "P1",
+                document.getElementById('name1').value || "P2",
+                document.getElementById('name2').value || "P3"
+            ];
+            pushToCloud();
+        };
+
+        window.addItem = () => {
+            const name = document.getElementById('itemName').value;
+            const amount = parseFloat(document.getElementById('itemAmount').value);
+            const participants = Array.from(document.querySelectorAll('.participant')).map(n => n.checked);
+            if (name && amount && participants.includes(true)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
-                templates.forEach(t => {
-                    allExpenses[key].push({
-                        id: Date.now() + Math.random(),
-                        name: t.name,
-                        amount: t.amount,
-                        splitBetween: t.splitBetween || [true, true, true],
-                        paidBy: [false, false, false]
-                    });
-                });
+                allExpenses[key].push({ id: Date.now(), name, amount, splitBetween: participants, paidBy: [false, false, false] });
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemAmount').value = '';
                 pushToCloud();
-            };
-            window.saveSettings = () => {
-                roommateNames = [
-                    document.getElementById('name0').value || "P1",
-                    document.getElementById('name1').value || "P2",
-                    document.getElementById('name2').value || "P3"
-                ];
+            }
+        };
+
+        window.togglePaid = (id, userIdx) => {
+            const key = getMonthKey();
+            const item = allExpenses[key].find(e => e.id === id);
+            if (item) {
+                item.paidBy[userIdx] = !item.paidBy[userIdx];
                 pushToCloud();
-            };
-            window.addItem = () => {
-                const name = document.getElementById('itemName').value;
-                const amount = parseFloat(document.getElementById('itemAmount').value);
-                const participants = Array.from(document.querySelectorAll('.participant')).map(n => n.checked);
-                if (name && amount && participants.includes(true)) {
-                    const key = getMonthKey();
-                    if (!allExpenses[key]) allExpenses[key] = [];
-                    allExpenses[key].push({ id: Date.now(), name, amount, splitBetween: participants, paidBy: [false, false, false] });
-                    document.getElementById('itemName').value = '';
-                    document.getElementById('itemAmount').value = '';
-                    pushToCloud();
-                }
-            };
-            window.togglePaid = (id, userIdx) => {
-                const key = getMonthKey();
-                const item = allExpenses[key].find(e => e.id === id);
-                if (item) {
-                    item.paidBy[userIdx] = !item.paidBy[userIdx];
-                    pushToCloud();
-                }
-            };
-            window.deleteItem = (id) => {
-                const key = getMonthKey();
-                allExpenses[key] = allExpenses[key].filter(e => e.id !== id);
-                pushToCloud();
-            };
+            }
+        };
 
-            function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
+        window.deleteItem = (id) => {
+            const key = getMonthKey();
+            allExpenses[key] = allExpenses[key].filter(e => e.id !== id);
+            pushToCloud();
+        };
 
-            function render() {
-                const key = getMonthKey();
-                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
+        function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
-                document.getElementById('templateList').innerHTML = templates.map((t, i) => {
-                    const names = roommateNames.filter((_, idx) => t.splitBetween && t.splitBetween[idx]).join(', ');
-                    return `
+        function render() {
+            const key = getMonthKey();
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
+
+            // 更新名字输入框
+            roommateNames.forEach((n, i) => {
+                const el = document.getElementById(`name${i}`);
+                if(el) el.value = n;
+            });
+
+            document.getElementById('templateList').innerHTML = templates.map((t, i) => {
+                const names = roommateNames.filter((_, idx) => t.splitBetween && t.splitBetween[idx]).join(', ');
+                return `
                     <div class="template-item">
                         <div class="template-item-top">
                             <span>${t.name} ($${t.amount})</span>
@@ -327,66 +326,66 @@
                         </div>
                         <div class="template-item-users">Split: ${names || 'None'}</div>
                     </div>
-                `}).join('');
+                `;
+            }).join('');
 
-                const selectorsHTML = roommateNames.map((n, i) => `
-                    <label class="split-pill"><input type="checkbox" class="participant" checked> <span>${n}</span></label>
-                `).join('');
-                document.getElementById('addSplitSelector').innerHTML = selectorsHTML;
+            const selectorsHTML = roommateNames.map((n, i) => `
+                <label class="split-pill"><input type="checkbox" class="participant" checked> <span>${n}</span></label>
+            `).join('');
+            document.getElementById('addSplitSelector').innerHTML = selectorsHTML;
 
-                const tempSelectorsHTML = roommateNames.map((n, i) => `
-                    <label class="split-pill"><input type="checkbox" class="temp-participant" checked> <span>${n}</span></label>
-                `).join('');
-                document.getElementById('tempSplitSelector').innerHTML = tempSelectorsHTML;
+            const tempSelectorsHTML = roommateNames.map((n, i) => `
+                <label class="split-pill"><input type="checkbox" class="temp-participant" checked> <span>${n}</span></label>
+            `).join('');
+            document.getElementById('tempSplitSelector').innerHTML = tempSelectorsHTML;
 
-                const monthItems = allExpenses[key] || [];
-                const container = document.getElementById('listContainer');
-                document.getElementById('clearBtn').style.display = monthItems.length > 0 ? 'block' : 'none';
-                container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills. Click template or add new.</p>' : '';
-                
-                let userStats = [[], [], []]; let userTotals = [0, 0, 0];
+            const monthItems = allExpenses[key] || [];
+            const container = document.getElementById('listContainer');
+            document.getElementById('clearBtn').style.display = monthItems.length > 0 ? 'block' : 'none';
+            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills. Click template or add new.</p>' : '';
+            
+            let userStats = [[], [], []]; 
+            let userTotals = [0, 0, 0];
 
-                monthItems.forEach(item => {
-                    const count = item.splitBetween.filter(Boolean).length;
-                    const perPerson = item.amount / count;
-                    item.splitBetween.forEach((isPart, idx) => {
-                        if (isPart) {
-                            userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
-                            if (!item.paidBy[idx]) userTotals[idx] += perPerson;
-                        }
-                    });
-
-                    const div = document.createElement('div');
-                    div.className = 'item-row';
-                    div.innerHTML = `
-                        <div class="item-header">
-                            <span>${item.name} ($${item.amount.toFixed(0)})</span>
-                            <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
-                        </div>
-                        <div class="roommates-grid">
-                            ${roommateNames.map((name, index) => {
-                                if (!item.splitBetween[index]) return <div class="check-box" style="visibility:hidden"></div>;
-                                return `
-                                    <label class="check-box" style="${item.paidBy[index] ? 'opacity:0.4; background:#E5E5EA;' : ''}">
-                                        <input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} onchange="togglePaid(${item.id}, ${index})">
-                                        <span>${name}</span>
-                                    </label>
-                                `;
-                            }).join('')}
-                        </div>
-                    `;
-                    container.appendChild(div);
+            monthItems.forEach(item => {
+                const count = item.splitBetween.filter(Boolean).length;
+                const perPerson = item.amount / count;
+                item.splitBetween.forEach((isPart, idx) => {
+                    if (isPart) {
+                        userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
+                        if (!item.paidBy[idx]) userTotals[idx] += perPerson;
+                    }
                 });
 
-                document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
-                    <div class="user-summary-column">
-                        <div class="user-name">${name}</div>
-                        ${userStats[i].map(d => <div class="item-debt ${d.isPaid ? 'paid' : ''}"><span>${d.name}</span><span>$${d.amount.toFixed(0)}</span></div>).join('')}
-                        <div class="grand-total ${userTotals[i] <= 0 ? 'all-paid' : ''}">${userTotals[i] <= 0 ? 'PAID' : '$' + userTotals[i].toFixed(0)}</div>
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-header">
+                        <span>${item.name} ($${item.amount.toFixed(0)})</span>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
                     </div>
-                `).join('');
-            }
-            render();
+                    <div class="roommates-grid">
+                        ${roommateNames.map((name, index) => {
+                            if (!item.splitBetween[index]) return `<div class="check-box" style="visibility:hidden"></div>`;
+                            return `
+                                <label class="check-box" style="${item.paidBy[index] ? 'opacity:0.4; background:#E5E5EA;' : ''}">
+                                    <input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} onchange="togglePaid(${item.id}, ${index})">
+                                    <span>${name}</span>
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
+                <div class="user-summary-column">
+                    <div class="user-name">${name}</div>
+                    ${userStats[i].map(d => `<div class="item-debt ${d.isPaid ? 'paid' : ''}"><span>${d.name}</span><span>$${d.amount.toFixed(0)}</span></div>`).join('')}
+                    <div class="grand-total ${userTotals[i] <= 0 ? 'all-paid' : ''}">${userTotals[i] <= 0 ? 'PAID' : '$' + userTotals[i].toFixed(0)}</div>
+                </div>
+            `).join('');
         }
     </script>
 </body>

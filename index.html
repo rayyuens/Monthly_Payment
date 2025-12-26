@@ -41,7 +41,7 @@
         .split-pill input { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
-        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; cursor: pointer; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
@@ -88,9 +88,12 @@
             <span class="label-sm">Usually Paid By:</span>
             <div class="split-selector" id="tempPayerSelector"></div>
             
-            <div style="display:flex; gap:8px; margin-top: 10px;">
-                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93; flex: 1;">Save New</button>
-                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success); flex: 1.5;">Apply All Now</button>
+            <span class="label-sm">Split Between:</span>
+            <div class="split-selector" id="tempSplitSelector"></div>
+            
+            <div style="display:flex; gap:8px;">
+                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save New</button>
+                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
             </div>
         </div>
 
@@ -167,8 +170,10 @@
             const name = document.getElementById('tempName').value;
             const amount = parseFloat(document.getElementById('tempAmount').value);
             const payers = Array.from(document.querySelectorAll('.temp-payer-check')).map(n => n.checked);
+            const splits = Array.from(document.querySelectorAll('.temp-split-check')).map(n => n.checked);
+            
             if(name && amount) {
-                templates.push({ name, amount, payers, splitBetween: [true, true, true] });
+                templates.push({ name, amount, payers, splitBetween: splits });
                 document.getElementById('tempName').value = ''; document.getElementById('tempAmount').value = '';
                 pushToCloud();
             }
@@ -177,22 +182,11 @@
         window.applyTemplates = () => {
             const key = getMonthKey();
             if (!allExpenses[key]) allExpenses[key] = [];
-            
-            if (templates.length === 0) {
-                alert("No templates saved to apply.");
-                return;
-            }
-
             templates.forEach(t => {
-                let paidStatus = t.splitBetween.map((isPart, idx) => (isPart && t.payers[idx]));
-                allExpenses[key].push({ 
-                    id: Date.now() + Math.random(), 
-                    name: t.name, 
-                    amount: t.amount, 
-                    payers: t.payers, 
-                    splitBetween: t.splitBetween, 
-                    paidBy: paidStatus 
-                });
+                // Ensure splitBetween exists (backwards compatibility)
+                const splits = t.splitBetween || [true, true, true];
+                let paidStatus = splits.map((isPart, idx) => (isPart && t.payers[idx]));
+                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus });
             });
             pushToCloud();
             document.getElementById('templateSection').style.display = 'none';
@@ -225,11 +219,7 @@
             pushToCloud();
         };
 
-        window.toggleTemplateView = () => { 
-            const s = document.getElementById('templateSection'); 
-            s.style.display = (s.style.display==='block'?'none':'block'); 
-        };
-        
+        window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
         window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
@@ -240,9 +230,19 @@
 
             document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> ${n}</label>`).join('');
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
+            
+            // Re-render template selectors
             document.getElementById('tempPayerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="temp-payer-check"> ${n}</label>`).join('');
+            document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
 
-            document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) <span style="color:red; float:right; cursor:pointer;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
+            document.getElementById('templateList').innerHTML = templates.map((t, i) => {
+                const splittingWith = roommateNames.filter((_, idx) => t.splitBetween ? t.splitBetween[idx] : true).join(', ');
+                return `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">
+                    • ${t.name} ($${t.amount}) <br>
+                    <small style="color:#888">Split: ${splittingWith}</small>
+                    <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span>
+                </div>`
+            }).join('');
 
             const monthItems = allExpenses[key] || [];
             const container = document.getElementById('listContainer');
@@ -251,7 +251,7 @@
             let userStats = [[], [], []], userTotals = [0, 0, 0];
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
-                const perPerson = item.amount / (count || 1);
+                const perPerson = item.amount / count;
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
                         userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });

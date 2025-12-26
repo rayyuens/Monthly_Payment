@@ -41,8 +41,8 @@
         .split-pill input { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
-        .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; opacity: 0.9; }
-        .pill-paid input { opacity: 0.5; }
+        .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; }
+        .pill-locked { opacity: 0.8; } /* Visual hint for the primary payer */
 
         .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
@@ -203,6 +203,7 @@
             if (name && amount) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
+                // Initial paid status: if you are the one who paid, your share is already "paid"
                 let paidStatus = participants.map((isPart, idx) => (isPart && payers[idx]));
                 allExpenses[key].push({ id: Date.now(), name, amount, payers, splitBetween: participants, paidBy: paidStatus });
                 document.getElementById('itemName').value = ''; document.getElementById('itemAmount').value = '';
@@ -221,8 +222,13 @@
         window.togglePaid = (id, userIdx) => {
             const key = getMonthKey();
             const item = allExpenses[key].find(e => e.id === id);
-            // Toggle normally, but render handles disabling checked ones
-            if (item) { item.paidBy[userIdx] = !item.paidBy[userIdx]; pushToCloud(); }
+            if (item) { 
+                // Only allow toggling if the user was NOT the original payer
+                if (!item.payers[userIdx]) {
+                    item.paidBy[userIdx] = !item.paidBy[userIdx]; 
+                    pushToCloud(); 
+                }
+            }
         };
 
         window.deleteItem = (id) => {
@@ -259,7 +265,7 @@
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
                 const perPerson = item.amount / count;
-                const actualPayer = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ') || 'Unknown';
+                const actualPayerNames = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ') || 'Unknown';
 
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
@@ -272,15 +278,18 @@
                 div.className = 'item-row';
                 div.innerHTML = `
                     <div class="item-header">
-                        <span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayer} paid</span></span>
+                        <span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayerNames} paid</span></span>
                         <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
                     </div>
                     <div style="display:flex; gap:5px; margin-top:8px;">
                         ${roommateNames.map((name, index) => {
                             if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
+                            const isOriginalPayer = item.payers[index];
                             const isPaid = item.paidBy[index];
-                            return `<label class="split-pill ${isPaid ? 'pill-paid' : ''}" style="padding:4px 0; font-size:10px;">
-                                <input type="checkbox" ${isPaid ? 'checked disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
+                            
+                            // LOCK ONLY if they were the "Who Paid" person
+                            return `<label class="split-pill ${isPaid ? 'pill-paid' : ''} ${isOriginalPayer ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;">
+                                <input type="checkbox" ${isPaid ? 'checked' : ''} ${isOriginalPayer ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
                             </label>`;
                         }).join('')}
                     </div>`;

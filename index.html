@@ -69,14 +69,15 @@
         .nav-btn { background: var(--border); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
         .name-editor { display: flex; gap: 6px; }
         .name-editor input { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; text-align: center; }
+        
         .template-section { display: none; border-top: 1px solid #eee; margin-top: 10px; padding-top: 10px; }
         .template-item { background: #f9f9f9; padding: 8px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #f0f0f0; }
         .template-item-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
         .template-item-users { font-size: 10px; color: #666; font-style: italic; }
         .toggle-template-btn { background: none; color: var(--primary); font-size: 12px; font-weight: bold; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 20px; width: auto; margin: 0 auto 10px; }
-        .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
         
-        input[type="text"], input[type="number"], input[type="password"] { 
+        .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
+        input[type="text"], input[type="number"], input[type="password"], select { 
             padding: 10px; 
             border-radius: 8px; 
             border: 1px solid var(--border); 
@@ -84,12 +85,16 @@
             width: 100%; 
             box-sizing: border-box; 
         }
+
+        .label-sm { font-size: 10px; color: #888; font-weight: bold; margin-bottom: 4px; display: block; }
         
         .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; margin-top: 5px;}
-        .split-selector { display: flex; gap: 4px; margin-bottom: 5px; }
+        .split-selector { display: flex; gap: 4px; margin-bottom: 10px; }
         .split-pill { flex: 1; background: #F2F2F7; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; border: 1px solid transparent; }
+        
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 12px 0; }
-        .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px; }
+        .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
+        .payer-tag { font-size: 9px; background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: normal; color: #666; }
         .delete-btn { background: #FFE5E5; color: var(--danger); border: none; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; }
         .roommates-grid { display: flex; gap: 5px; margin-top: 8px; }
         .check-box { width: 33.33%; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; background: #F9F9F9; padding: 8px 2px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600; }
@@ -111,7 +116,7 @@
     <div id="loginOverlay">
         <div class="login-card">
             <h2 style="margin-top:0">RoomiePay</h2>
-            <p style="font-size:12px; color:#666">Enter password to access</p>
+            <p style="font-size:12px; color:#666">Enter password</p>
             <input type="password" id="passInput" placeholder="Password">
             <button onclick="checkPassword()" class="btn-add">Unlock</button>
         </div>
@@ -131,11 +136,12 @@
             <div id="templateSection" class="template-section">
                 <span class="card-title">Recurring Bills Template</span>
                 <div id="templateList"></div>
-                <div style="border: 1px dashed #ccc; padding: 10px; border-radius: 10px; margin-top: 10px;">
+                <div style="border: 1px dashed #ccc; padding: 10px; border-radius: 10px; margin-top: 10px; text-align: left;">
                     <div class="input-group">
                         <input type="text" id="tempName" placeholder="Template Name">
                         <input type="number" id="tempAmount" placeholder="$">
                     </div>
+                    <span class="label-sm">SPLIT BETWEEN:</span>
                     <div class="split-selector" id="tempSplitSelector"></div>
                     <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); font-size:12px;">+ Add to Template</button>
                 </div>
@@ -155,10 +161,16 @@
         <div class="card">
             <span class="card-title">New Expense</span>
             <div class="input-group">
-                <input type="text" id="itemName" placeholder="Item">
+                <input type="text" id="itemName" placeholder="Item (e.g. Food)">
                 <input type="number" id="itemAmount" placeholder="$">
             </div>
+            
+            <span class="label-sm">WHO PAID UPFRONT?</span>
+            <select id="paidBySelect" style="margin-bottom: 10px;"></select>
+
+            <span class="label-sm">SPLIT BETWEEN:</span>
             <div class="split-selector" id="addSplitSelector"></div>
+            
             <button onclick="addItem()" class="btn-add">Add Expense</button>
         </div>
 
@@ -204,84 +216,45 @@
                 databaseURL: "https://roomiepay-76a38-default-rtdb.firebaseio.com",
                 projectId: "roomiepay-76a38"
             };
-
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
-
-            db.ref('roomiePay_v2').on('value', (snapshot) => {
+            db.ref('roomiePay_v3').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     roommateNames = data.names || ["Ray", "Roy", "Irene"];
                     templates = data.templates || [];
                     allExpenses = data.expenses || {};
                 }
-                document.getElementById('cloudStatus').innerText = "● Live Sync Active";
                 render();
+                document.getElementById('cloudStatus').innerText = "● Live Sync Active";
             });
         }
 
-        window.pushToCloud = () => db.ref('roomiePay_v2').set({ names: roommateNames, templates: templates, expenses: allExpenses });
-        
-        window.clearCurrentMonth = () => {
-            const currentMonthLabel = document.getElementById('monthDisplay').innerText;
-            if(confirm(`⚠️ Are you sure? This will delete ALL data for ${currentMonthLabel}.`)) {
-                allExpenses[getMonthKey()] = [];
-                pushToCloud();
-            }
-        };
-
-        window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
-        window.toggleTemplateView = () => {
-            const sec = document.getElementById('templateSection');
-            sec.style.display = sec.style.display === 'block' ? 'none' : 'block';
-        };
-        
-        window.addTemplateItem = () => {
-            const name = document.getElementById('tempName').value;
-            const amount = parseFloat(document.getElementById('tempAmount').value);
-            const participants = Array.from(document.querySelectorAll('.temp-participant')).map(n => n.checked);
-            if(name && amount && participants.includes(true)) {
-                templates.push({ name, amount, splitBetween: participants });
-                document.getElementById('tempName').value = '';
-                document.getElementById('tempAmount').value = '';
-                pushToCloud();
-            }
-        };
-
-        window.removeTemplateItem = (idx) => { templates.splice(idx, 1); pushToCloud(); };
-
-        window.applyTemplates = () => {
-            const key = getMonthKey();
-            if (!allExpenses[key]) allExpenses[key] = [];
-            templates.forEach(t => {
-                allExpenses[key].push({
-                    id: Date.now() + Math.random(),
-                    name: t.name,
-                    amount: t.amount,
-                    splitBetween: t.splitBetween || [true, true, true],
-                    paidBy: [false, false, false]
-                });
-            });
-            pushToCloud();
-        };
-
-        window.saveSettings = () => {
-            roommateNames = [
-                document.getElementById('name0').value || "P1",
-                document.getElementById('name1').value || "P2",
-                document.getElementById('name2').value || "P3"
-            ];
-            pushToCloud();
-        };
+        window.pushToCloud = () => db.ref('roomiePay_v3').set({ names: roommateNames, templates: templates, expenses: allExpenses });
 
         window.addItem = () => {
             const name = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('itemAmount').value);
+            const payerIdx = parseInt(document.getElementById('paidBySelect').value);
             const participants = Array.from(document.querySelectorAll('.participant')).map(n => n.checked);
+            
             if (name && amount && participants.includes(true)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
-                allExpenses[key].push({ id: Date.now(), name, amount, splitBetween: participants, paidBy: [false, false, false] });
+                
+                // Logic: The person who paid is automatically marked as "paidBy: true" for their share
+                let paidStatus = [false, false, false];
+                paidStatus[payerIdx] = true; 
+
+                allExpenses[key].push({ 
+                    id: Date.now(), 
+                    name, 
+                    amount, 
+                    payerIndex: payerIdx,
+                    splitBetween: participants, 
+                    paidBy: paidStatus 
+                });
+                
                 document.getElementById('itemName').value = '';
                 document.getElementById('itemAmount').value = '';
                 pushToCloud();
@@ -303,6 +276,47 @@
             pushToCloud();
         };
 
+        window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
+        window.toggleTemplateView = () => {
+            const sec = document.getElementById('templateSection');
+            sec.style.display = sec.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.addTemplateItem = () => {
+            const name = document.getElementById('tempName').value;
+            const amount = parseFloat(document.getElementById('tempAmount').value);
+            const participants = Array.from(document.querySelectorAll('.temp-participant')).map(n => n.checked);
+            if(name && amount) {
+                templates.push({ name, amount, splitBetween: participants });
+                pushToCloud();
+            }
+        };
+
+        window.applyTemplates = () => {
+            const key = getMonthKey();
+            if (!allExpenses[key]) allExpenses[key] = [];
+            templates.forEach(t => {
+                allExpenses[key].push({
+                    id: Date.now() + Math.random(),
+                    name: t.name,
+                    amount: t.amount,
+                    payerIndex: 0, // Default to first person for templates
+                    splitBetween: t.splitBetween || [true, true, true],
+                    paidBy: [true, false, false] // Mark payer as paid
+                });
+            });
+            pushToCloud();
+        };
+
+        window.saveSettings = () => {
+            roommateNames = [
+                document.getElementById('name0').value || "P1",
+                document.getElementById('name1').value || "P2",
+                document.getElementById('name2').value || "P3"
+            ];
+            pushToCloud();
+        };
+
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
         function render() {
@@ -310,39 +324,23 @@
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-            // 更新名字输入框
-            roommateNames.forEach((n, i) => {
-                const el = document.getElementById(`name${i}`);
-                if(el) el.value = n;
-            });
+            // Update Name Inputs
+            roommateNames.forEach((n, i) => { if(document.getElementById(`name${i}`)) document.getElementById(`name${i}`).value = n; });
 
-            document.getElementById('templateList').innerHTML = templates.map((t, i) => {
-                const names = roommateNames.filter((_, idx) => t.splitBetween && t.splitBetween[idx]).join(', ');
-                return `
-                    <div class="template-item">
-                        <div class="template-item-top">
-                            <span>${t.name} ($${t.amount})</span>
-                            <span style="color:red; font-size:14px" onclick="removeTemplateItem(${i})">✕</span>
-                        </div>
-                        <div class="template-item-users">Split: ${names || 'None'}</div>
-                    </div>
-                `;
-            }).join('');
+            // Update Payer Dropdown
+            document.getElementById('paidBySelect').innerHTML = roommateNames.map((n, i) => `<option value="${i}">${n}</option>`).join('');
 
-            const selectorsHTML = roommateNames.map((n, i) => `
-                <label class="split-pill"><input type="checkbox" class="participant" checked> <span>${n}</span></label>
+            // Update Split Selectors
+            const splitHTML = (cls) => roommateNames.map((n, i) => `
+                <label class="split-pill"><input type="checkbox" class="${cls}" checked> <span>${n}</span></label>
             `).join('');
-            document.getElementById('addSplitSelector').innerHTML = selectorsHTML;
+            document.getElementById('addSplitSelector').innerHTML = splitHTML('participant');
+            document.getElementById('tempSplitSelector').innerHTML = splitHTML('temp-participant');
 
-            const tempSelectorsHTML = roommateNames.map((n, i) => `
-                <label class="split-pill"><input type="checkbox" class="temp-participant" checked> <span>${n}</span></label>
-            `).join('');
-            document.getElementById('tempSplitSelector').innerHTML = tempSelectorsHTML;
-
+            // Render Checklist
             const monthItems = allExpenses[key] || [];
             const container = document.getElementById('listContainer');
-            document.getElementById('clearBtn').style.display = monthItems.length > 0 ? 'block' : 'none';
-            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills. Click template or add new.</p>' : '';
+            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills yet.</p>' : '';
             
             let userStats = [[], [], []]; 
             let userTotals = [0, 0, 0];
@@ -350,6 +348,8 @@
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
                 const perPerson = item.amount / count;
+                const payerName = roommateNames[item.payerIndex] || "Someone";
+
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
                         userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
@@ -361,7 +361,7 @@
                 div.className = 'item-row';
                 div.innerHTML = `
                     <div class="item-header">
-                        <span>${item.name} ($${item.amount.toFixed(0)})</span>
+                        <span>${item.name} ($${item.amount.toFixed(0)}) <span class="payer-tag">Paid by ${payerName}</span></span>
                         <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
                     </div>
                     <div class="roommates-grid">
@@ -379,6 +379,7 @@
                 container.appendChild(div);
             });
 
+            // Summary Grid
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-column">
                     <div class="user-name">${name}</div>

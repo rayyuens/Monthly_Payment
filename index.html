@@ -30,78 +30,61 @@
             margin: 0;
             padding: 10px;
             padding-bottom: 300px;
-            line-height: 1.4;
         }
 
         #loginOverlay {
             position: fixed;
-            top: 0; left: 0; 
-            width: 100%; height: 100%;
-            background: var(--bg);
-            z-index: 9999;
-            display: flex;
-            align-items: center; 
-            justify-content: center;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
         }
         .login-card {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 85%;
-            max-width: 300px;
+            background: white; padding: 30px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; width: 85%; max-width: 300px;
         }
-        #passInput {
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 16px !important; 
-            padding: 12px;
-        }
+        #passInput { margin-bottom: 15px; text-align: center; font-size: 16px !important; padding: 12px; }
 
         #mainContent { display: none; }
-
         .cloud-status { font-size: 10px; text-align: center; color: #888; margin-bottom: 8px; }
         .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .card-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 10px; display: block; letter-spacing: 0.5px; }
+        
         .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: var(--card); padding: 10px; border-radius: 14px; }
         .month-label { font-weight: 800; font-size: 16px; color: var(--primary); }
-        .nav-btn { background: var(--border); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-        .name-editor { display: flex; gap: 6px; }
-        .name-editor input { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; text-align: center; }
-        
-        .template-section { display: none; border-top: 1px solid #eee; margin-top: 10px; padding-top: 10px; }
-        .template-item { background: #f9f9f9; padding: 8px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #f0f0f0; }
-        .template-item-top { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
-        .template-item-users { font-size: 10px; color: #666; font-style: italic; }
-        .toggle-template-btn { background: none; color: var(--primary); font-size: 12px; font-weight: bold; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 20px; width: auto; margin: 0 auto 10px; }
-        
+        .nav-btn { background: var(--border); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; }
+
         .input-group { display: flex; gap: 8px; margin-bottom: 8px; }
-        input[type="text"], input[type="number"], input[type="password"], select { 
-            padding: 10px; 
-            border-radius: 8px; 
-            border: 1px solid var(--border); 
-            font-size: 14px; 
-            width: 100%; 
-            box-sizing: border-box; 
+        input[type="text"], input[type="number"], input[type="password"] { 
+            padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; width: 100%; box-sizing: border-box; 
         }
 
-        .label-sm { font-size: 10px; color: #888; font-weight: bold; margin-bottom: 4px; display: block; }
+        .label-sm { font-size: 10px; color: #888; font-weight: bold; margin: 8px 0 4px 0; display: block; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; margin-top: 10px;}
         
-        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; margin-top: 5px;}
-        .split-selector { display: flex; gap: 4px; margin-bottom: 10px; }
-        .split-pill { flex: 1; background: #F2F2F7; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; border: 1px solid transparent; }
-        
+        .split-selector { display: flex; gap: 4px; margin-bottom: 5px; }
+        .split-pill { 
+            flex: 1; background: #F2F2F7; padding: 8px 2px; border-radius: 8px; 
+            text-align: center; font-size: 10px; display: flex; align-items: center; 
+            justify-content: center; gap: 3px; border: 1px solid transparent; 
+        }
+        .split-pill.payer-pill { background: #e1f5fe; border-color: #b3e5fc; }
+
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 12px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
-        .payer-tag { font-size: 9px; background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: normal; color: #666; }
         .delete-btn { background: #FFE5E5; color: var(--danger); border: none; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; }
         .roommates-grid { display: flex; gap: 5px; margin-top: 8px; }
-        .check-box { width: 33.33%; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; background: #F9F9F9; padding: 8px 2px; border-radius: 8px; border: 1px solid var(--border); font-weight: 600; }
+        .check-box { 
+            width: 33.33%; display: flex; align-items: center; justify-content: center; 
+            gap: 4px; font-size: 10px; background: #F9F9F9; padding: 8px 2px; 
+            border-radius: 8px; border: 1px solid var(--border); font-weight: 600; 
+        }
         
-        .btn-clear-all { background: none; color: var(--danger); border: 1px solid var(--danger); padding: 8px; border-radius: 10px; font-size: 11px; font-weight: 600; width: 100%; margin-top: 15px; opacity: 0.7; }
-        
-        .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 10px 10px 25px 10px; border-top: 1px solid var(--border); z-index: 1000; max-height: 250px; overflow-y: auto; }
+        .summary-panel { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); 
+            padding: 10px 10px 25px 10px; border-top: 1px solid var(--border); 
+            z-index: 1000; max-height: 250px; overflow-y: auto; 
+        }
         .summary-grid { display: flex; gap: 8px; overflow-x: auto; }
         .user-summary-column { flex: 1; min-width: 100px; background: white; padding: 8px; border-radius: 10px; border: 1px solid #eee; }
         .user-name { font-size: 10px; font-weight: 800; color: var(--primary); border-bottom: 1px solid #eee; margin-bottom: 5px; }
@@ -115,8 +98,7 @@
 
     <div id="loginOverlay">
         <div class="login-card">
-            <h2 style="margin-top:0">RoomiePay</h2>
-            <p style="font-size:12px; color:#666">Enter password</p>
+            <h2>RoomiePay</h2>
             <input type="password" id="passInput" placeholder="Password">
             <button onclick="checkPassword()" class="btn-add">Unlock</button>
         </div>
@@ -127,49 +109,22 @@
 
         <div class="month-nav">
             <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
-            <div class="month-label" id="monthDisplay">Month</div>
+            <div id="monthDisplay" class="month-label">Month</div>
             <button class="nav-btn" onclick="changeMonth(1)">❯</button>
-        </div>
-
-        <div class="card" style="text-align: center;">
-            <button class="toggle-template-btn" onclick="toggleTemplateView()">⚙️ Manage Monthly Templates</button>
-            <div id="templateSection" class="template-section">
-                <span class="card-title">Recurring Bills Template</span>
-                <div id="templateList"></div>
-                <div style="border: 1px dashed #ccc; padding: 10px; border-radius: 10px; margin-top: 10px; text-align: left;">
-                    <div class="input-group">
-                        <input type="text" id="tempName" placeholder="Template Name">
-                        <input type="number" id="tempAmount" placeholder="$">
-                    </div>
-                    <span class="label-sm">SPLIT BETWEEN:</span>
-                    <div class="split-selector" id="tempSplitSelector"></div>
-                    <button onclick="addTemplateItem()" class="btn-add" style="background:var(--success); font-size:12px;">+ Add to Template</button>
-                </div>
-                <button onclick="applyTemplates()" class="btn-add" style="background:var(--warning); font-size:12px; margin-top:15px;">Apply Template to Current Month</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <span class="card-title">Roommates</span>
-            <div class="name-editor">
-                <input type="text" id="name0" onchange="saveSettings()" placeholder="P1">
-                <input type="text" id="name1" onchange="saveSettings()" placeholder="P2">
-                <input type="text" id="name2" onchange="saveSettings()" placeholder="P3">
-            </div>
         </div>
 
         <div class="card">
             <span class="card-title">New Expense</span>
             <div class="input-group">
-                <input type="text" id="itemName" placeholder="Item (e.g. Food)">
+                <input type="text" id="itemName" placeholder="What was bought?">
                 <input type="number" id="itemAmount" placeholder="$">
             </div>
             
-            <span class="label-sm">WHO PAID UPFRONT?</span>
-            <select id="paidBySelect" style="margin-bottom: 10px;"></select>
+            <span class="label-sm">WHO PAID UPFRONT? (Credit card holder)</span>
+            <div class="split-selector" id="payerSelector"></div>
 
-            <span class="label-sm">SPLIT BETWEEN:</span>
-            <div class="split-selector" id="addSplitSelector"></div>
+            <span class="label-sm">SPLIT BETWEEN: (Who owes?)</span>
+            <div class="split-selector" id="splitSelector"></div>
             
             <button onclick="addItem()" class="btn-add">Add Expense</button>
         </div>
@@ -177,7 +132,6 @@
         <div class="card">
             <span class="card-title">Monthly Checklist</span>
             <div id="listContainer"></div>
-            <button id="clearBtn" onclick="clearCurrentMonth()" class="btn-clear-all">🗑️ Clear Current Month Data</button>
         </div>
 
         <div class="summary-panel">
@@ -189,16 +143,14 @@
         const APP_PASSWORD = "@@"; 
         let viewDate = new Date(); viewDate.setDate(1);
         let roommateNames = ["Ray", "Roy", "Irene"];
-        let templates = []; 
         let allExpenses = {};
         let db;
 
         function checkPassword() {
-            const input = document.getElementById('passInput').value;
-            if (input === APP_PASSWORD) {
+            if (document.getElementById('passInput').value === APP_PASSWORD) {
                 sessionStorage.setItem('roomiePay_auth', 'true');
                 unlockApp();
-            } else { alert("Incorrect Password!"); }
+            } else { alert("Wrong Password"); }
         }
 
         function unlockApp() {
@@ -218,11 +170,10 @@
             };
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
-            db.ref('roomiePay_v3').on('value', (snapshot) => {
+            db.ref('roomiePay_v4').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     roommateNames = data.names || ["Ray", "Roy", "Irene"];
-                    templates = data.templates || [];
                     allExpenses = data.expenses || {};
                 }
                 render();
@@ -230,27 +181,28 @@
             });
         }
 
-        window.pushToCloud = () => db.ref('roomiePay_v3').set({ names: roommateNames, templates: templates, expenses: allExpenses });
+        window.pushToCloud = () => db.ref('roomiePay_v4').set({ names: roommateNames, expenses: allExpenses });
 
         window.addItem = () => {
             const name = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('itemAmount').value);
-            const payerIdx = parseInt(document.getElementById('paidBySelect').value);
-            const participants = Array.from(document.querySelectorAll('.participant')).map(n => n.checked);
+            const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
+            const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
             
             if (name && amount && participants.includes(true)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
                 
-                // Logic: The person who paid is automatically marked as "paidBy: true" for their share
-                let paidStatus = [false, false, false];
-                paidStatus[payerIdx] = true; 
+                // Logic: Any participant who is also a payer is marked as PAID automatically
+                let paidStatus = participants.map((isPart, idx) => {
+                    return isPart && payers[idx] ? true : false;
+                });
 
                 allExpenses[key].push({ 
                     id: Date.now(), 
                     name, 
                     amount, 
-                    payerIndex: payerIdx,
+                    payers, // tracking who paid upfront
                     splitBetween: participants, 
                     paidBy: paidStatus 
                 });
@@ -277,46 +229,6 @@
         };
 
         window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
-        window.toggleTemplateView = () => {
-            const sec = document.getElementById('templateSection');
-            sec.style.display = sec.style.display === 'block' ? 'none' : 'block';
-        };
-
-        window.addTemplateItem = () => {
-            const name = document.getElementById('tempName').value;
-            const amount = parseFloat(document.getElementById('tempAmount').value);
-            const participants = Array.from(document.querySelectorAll('.temp-participant')).map(n => n.checked);
-            if(name && amount) {
-                templates.push({ name, amount, splitBetween: participants });
-                pushToCloud();
-            }
-        };
-
-        window.applyTemplates = () => {
-            const key = getMonthKey();
-            if (!allExpenses[key]) allExpenses[key] = [];
-            templates.forEach(t => {
-                allExpenses[key].push({
-                    id: Date.now() + Math.random(),
-                    name: t.name,
-                    amount: t.amount,
-                    payerIndex: 0, // Default to first person for templates
-                    splitBetween: t.splitBetween || [true, true, true],
-                    paidBy: [true, false, false] // Mark payer as paid
-                });
-            });
-            pushToCloud();
-        };
-
-        window.saveSettings = () => {
-            roommateNames = [
-                document.getElementById('name0').value || "P1",
-                document.getElementById('name1').value || "P2",
-                document.getElementById('name2').value || "P3"
-            ];
-            pushToCloud();
-        };
-
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
         function render() {
@@ -324,23 +236,18 @@
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-            // Update Name Inputs
-            roommateNames.forEach((n, i) => { if(document.getElementById(`name${i}`)) document.getElementById(`name${i}`).value = n; });
-
-            // Update Payer Dropdown
-            document.getElementById('paidBySelect').innerHTML = roommateNames.map((n, i) => `<option value="${i}">${n}</option>`).join('');
-
-            // Update Split Selectors
-            const splitHTML = (cls) => roommateNames.map((n, i) => `
-                <label class="split-pill"><input type="checkbox" class="${cls}" checked> <span>${n}</span></label>
+            // Render selectors
+            document.getElementById('payerSelector').innerHTML = roommateNames.map((n, i) => `
+                <label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> <span>${n}</span></label>
             `).join('');
-            document.getElementById('addSplitSelector').innerHTML = splitHTML('participant');
-            document.getElementById('tempSplitSelector').innerHTML = splitHTML('temp-participant');
+            
+            document.getElementById('splitSelector').innerHTML = roommateNames.map((n, i) => `
+                <label class="split-pill"><input type="checkbox" class="split-check" checked> <span>${n}</span></label>
+            `).join('');
 
-            // Render Checklist
             const monthItems = allExpenses[key] || [];
             const container = document.getElementById('listContainer');
-            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No bills yet.</p>' : '';
+            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; font-size:12px;">No expenses.</p>' : '';
             
             let userStats = [[], [], []]; 
             let userTotals = [0, 0, 0];
@@ -348,7 +255,9 @@
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
                 const perPerson = item.amount / count;
-                const payerName = roommateNames[item.payerIndex] || "Someone";
+                
+                // Track who actually provided the money
+                const payerLabels = roommateNames.filter((_, i) => item.payers && item.payers[i]).join(' & ');
 
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
@@ -361,9 +270,10 @@
                 div.className = 'item-row';
                 div.innerHTML = `
                     <div class="item-header">
-                        <span>${item.name} ($${item.amount.toFixed(0)}) <span class="payer-tag">Paid by ${payerName}</span></span>
+                        <span>${item.name} ($${item.amount.toFixed(0)})</span>
                         <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
                     </div>
+                    <div style="font-size:9px; color:#666; margin-top:2px;">Paid by: ${payerLabels || 'N/A'}</div>
                     <div class="roommates-grid">
                         ${roommateNames.map((name, index) => {
                             if (!item.splitBetween[index]) return `<div class="check-box" style="visibility:hidden"></div>`;
@@ -379,7 +289,6 @@
                 container.appendChild(div);
             });
 
-            // Summary Grid
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-column">
                     <div class="user-name">${name}</div>

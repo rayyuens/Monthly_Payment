@@ -35,20 +35,37 @@
         .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--card); padding: 12px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .month-label { font-weight: 800; font-size: 18px; color: var(--primary); }
         .nav-btn { background: var(--border); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+        
         .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .card-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 12px; display: block; letter-spacing: 0.5px; }
-        .name-editor { display: flex; gap: 8px; flex-wrap: wrap; }
-        .name-editor input { flex: 1; min-width: 80px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; text-align: center; background: #fdfdfd; }
+        
+        .name-editor { display: flex; gap: 8px; }
+        .name-editor input { flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; text-align: center; background: #fdfdfd; }
+        
         .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
         input[type="text"], input[type="number"] { padding: 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 16px; width: 100%; box-sizing: border-box; }
+        
         button { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .split-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-        .split-pill { flex: 1; min-width: 90px; background: #F2F2F7; padding: 10px 5px; border-radius: 10px; text-align: center; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; }
+        
+        .split-selector { display: flex; gap: 6px; margin-bottom: 12px; }
+        .split-pill { flex: 1; background: #F2F2F7; padding: 8px 4px; border-radius: 10px; text-align: center; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; min-width: 0; }
+        .split-pill span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 15px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; }
         .delete-btn { background: #FFE5E5; color: var(--danger); border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-        .roommates-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-        .check-box { flex: 1; min-width: 100px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; background: #F9F9F9; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-weight: 500; }
+        
+        /* 关键修改：强制一行显示 3 个用户 */
+        .roommates-grid { display: flex; gap: 6px; margin-top: 12px; justify-content: space-between; }
+        .check-box { 
+            width: calc(33.33% - 4px); 
+            display: flex; align-items: center; justify-content: center; 
+            gap: 4px; font-size: 11px; background: #F9F9F9; padding: 10px 4px; 
+            border-radius: 10px; border: 1px solid var(--border); font-weight: 600;
+            box-sizing: border-box;
+        }
+        .check-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
+
         .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 15px 12px 30px 12px; border-top: 1px solid var(--border); z-index: 1000; max-height: 290px; overflow-y: auto; }
         .summary-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
         .user-summary-column { flex: 1; min-width: 110px; background: #fdfdfd; padding: 10px; border-radius: 12px; border: 1px solid #eee; }
@@ -62,7 +79,7 @@
 </head>
 <body>
 
-    <div class="cloud-status" id="cloudStatus">Connecting to RoomiePay Cloud...</div>
+    <div class="cloud-status" id="cloudStatus">Connecting...</div>
 
     <div class="month-nav">
         <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
@@ -73,16 +90,16 @@
     <div class="card">
         <span class="card-title">Roommate Names</span>
         <div class="name-editor">
-            <input type="text" id="name0" onchange="saveNames()" placeholder="Name 1">
-            <input type="text" id="name1" onchange="saveNames()" placeholder="Name 2">
-            <input type="text" id="name2" onchange="saveNames()" placeholder="Name 3">
+            <input type="text" id="name0" onchange="saveNames()" placeholder="P1">
+            <input type="text" id="name1" onchange="saveNames()" placeholder="P2">
+            <input type="text" id="name2" onchange="saveNames()" placeholder="P3">
         </div>
     </div>
 
     <div class="card">
         <span class="card-title">New Expense</span>
         <div class="input-group">
-            <input type="text" id="itemName" placeholder="Item (e.g. Rent)">
+            <input type="text" id="itemName" placeholder="Item">
             <input type="number" id="itemAmount" placeholder="$">
         </div>
         <div class="split-selector" id="addSplitSelector"></div>
@@ -101,7 +118,6 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
             authDomain: "roomiepay-76a38.firebaseapp.com",
@@ -113,47 +129,36 @@
             measurementId: "G-212BRD6Z9R"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. APP STATE ---
         let viewDate = new Date(); viewDate.setDate(1);
         let roommateNames = ["Alex", "Jordan", "Taylor"];
         let allData = {};
 
-        // --- 3. CLOUD SYNC LOGIC ---
-        // Listen for cloud updates
         db.ref('roomiePay_Live').on('value', (snapshot) => {
             const cloudData = snapshot.val();
             if (cloudData) {
                 allData = cloudData.expenses || {};
                 roommateNames = cloudData.names || ["Alex", "Jordan", "Taylor"];
-                
-                // Sync UI Inputs
                 roommateNames.forEach((n, i) => {
                     const el = document.getElementById(`name${i}`);
                     if(el) el.value = n;
                 });
             }
-            document.getElementById('cloudStatus').innerText = "● Cloud Connected & Live";
+            document.getElementById('cloudStatus').innerText = "● Cloud Connected";
             render();
         });
 
         function pushToCloud() {
-            document.getElementById('cloudStatus').innerText = "Syncing...";
-            db.ref('roomiePay_Live').set({
-                names: roommateNames,
-                expenses: allData
-            });
+            db.ref('roomiePay_Live').set({ names: roommateNames, expenses: allData });
         }
 
-        // --- 4. FUNCTIONS ---
         function saveNames() {
             roommateNames = [
-                document.getElementById('name0').value || "User 1",
-                document.getElementById('name1').value || "User 2",
-                document.getElementById('name2').value || "User 3"
+                document.getElementById('name0').value || "P1",
+                document.getElementById('name1').value || "P2",
+                document.getElementById('name2').value || "P3"
             ];
             pushToCloud();
         }
@@ -165,12 +170,10 @@
             const name = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('itemAmount').value);
             const participants = Array.from(document.querySelectorAll('.participant')).map(n => n.checked);
-            
             if (name && amount && participants.includes(true)) {
                 const key = getMonthKey();
                 if (!allData[key]) allData[key] = [];
                 allData[key].push({ id: Date.now(), name, amount, splitBetween: participants, paidBy: [false, false, false] });
-                
                 pushToCloud();
                 document.getElementById('itemName').value = '';
                 document.getElementById('itemAmount').value = '';
@@ -193,10 +196,7 @@
         }
 
         function clearMonth() { 
-            if(confirm("Permanently delete this month's data from cloud?")) { 
-                allData[getMonthKey()] = []; 
-                pushToCloud(); 
-            } 
+            if(confirm("Delete month?")) { allData[getMonthKey()] = []; pushToCloud(); } 
         }
 
         function render() {
@@ -211,10 +211,9 @@
             const monthItems = allData[key] || [];
             const container = document.getElementById('listContainer');
             const summaryGrid = document.getElementById('summaryGrid');
-            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center; padding:20px;">No expenses found.</p>' : '';
+            container.innerHTML = monthItems.length === 0 ? '<p style="color:gray; text-align:center;">No expenses.</p>' : '';
             
-            let userStatments = [[], [], []]; 
-            let userRemaining = [0, 0, 0];
+            let userStatments = [[], [], []]; let userRemaining = [0, 0, 0];
 
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
@@ -230,13 +229,13 @@
                 div.className = 'item-row';
                 div.innerHTML = `
                     <div class="item-header">
-                        <span>${item.name} ($${item.amount.toFixed(2)})</span>
+                        <span>${item.name} ($${item.amount.toFixed(0)})</span>
                         <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
                     </div>
-                    <div style="font-size:11px; color:#888; margin-top:2px;">$${perPerson.toFixed(2)} per person</div>
+                    <div style="font-size:10px; color:#888;">$${perPerson.toFixed(1)} each</div>
                     <div class="roommates-grid">
                         ${roommateNames.map((name, index) => {
-                            if (!item.splitBetween[index]) return ''; 
+                            if (!item.splitBetween[index]) return `<div class="check-box" style="visibility:hidden"></div>`; 
                             return `
                                 <label class="check-box" style="${item.paidBy[index] ? 'opacity:0.4; background:#E5E5EA;' : ''}">
                                     <input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} onchange="togglePaid(${item.id}, ${index})">
@@ -256,16 +255,14 @@
                         <div class="item-debt ${d.isPaid ? 'paid' : ''}">
                             <span>${d.name}</span><span>$${d.amount.toFixed(0)}</span>
                         </div>
-                    `).join('') || '<div style="font-size:10px; color:#aaa;">No bills</div>'}
+                    `).join('') || '<div style="font-size:10px; color:#aaa;">Clear</div>'}
                     <div class="grand-total ${userRemaining[i] <= 0 ? 'all-paid' : ''}">
-                        ${userRemaining[i] <= 0 ? '✅ PAID' : '$' + userRemaining[i].toFixed(2)}
+                        ${userRemaining[i] <= 0 ? 'PAID' : '$' + userRemaining[i].toFixed(0)}
                     </div>
                 </div>
             `).join('');
         }
-
         render();
     </script>
 </body>
 </html>
-

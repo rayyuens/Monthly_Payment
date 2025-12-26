@@ -157,7 +157,7 @@
         db.ref('roomiePay_v2').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                roommateNames = data.names || ["Alex", "Jordan", "Taylor"];
+                roommateNames = data.names || ["Ray", "Roy", "irene"];
                 templates = data.templates || [];
                 allExpenses = data.expenses || {};
                 roommateNames.forEach((n, i) => {
@@ -336,3 +336,4 @@
     </script>
 </body>
 </html>
+

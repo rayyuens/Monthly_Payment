@@ -37,15 +37,19 @@
         .label-sm { font-size: 9px; color: #666; font-weight: 700; margin: 8px 0 4px 0; display: block; }
         
         .split-selector { display: flex; gap: 5px; margin-bottom: 5px; }
-        .split-pill { flex: 1; background: #fff; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--border); }
+        .split-pill { flex: 1; background: #fff; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--border); transition: all 0.2s ease; }
         .split-pill input { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
+
+        /* PAID STATE GREEN */
+        .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; }
 
         .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
+        .payer-info { font-weight: 400; color: #8E8E93; font-size: 11px; margin-left: 4px; }
         .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
         
         .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); padding: 12px; border-top: 1px solid #D1D1D6; z-index: 1000; }
@@ -92,13 +96,13 @@
             <div class="split-selector" id="tempSplitSelector"></div>
             
             <div style="display:flex; gap:8px;">
-                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save</button>
-                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply</button>
+                <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save New</button>
+                <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
             </div>
         </div>
 
         <div class="card">
-            <span class="card-title">Add</span>
+            <span class="card-title">Add Expense</span>
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                 <input type="text" id="itemName" placeholder="Item Name">
                 <input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
@@ -107,12 +111,13 @@
             <div class="split-selector" id="payerSelector"></div>
             <span class="label-sm">Split Between:</span>
             <div class="split-selector" id="splitSelector"></div>
-            <button onclick="addItem()" class="btn-add">Add</button>
+            <button onclick="addItem()" class="btn-add">Add to List</button>
         </div>
 
         <div class="card">
             <span class="card-title">Checklist</span>
             <div id="listContainer"></div>
+            <button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear All for this Month</button>
         </div>
 
         <div class="summary-panel">
@@ -183,7 +188,6 @@
             const key = getMonthKey();
             if (!allExpenses[key]) allExpenses[key] = [];
             templates.forEach(t => {
-                // Ensure splitBetween exists (backwards compatibility)
                 const splits = t.splitBetween || [true, true, true];
                 let paidStatus = splits.map((isPart, idx) => (isPart && t.payers[idx]));
                 allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus });
@@ -203,6 +207,14 @@
                 let paidStatus = participants.map((isPart, idx) => (isPart && payers[idx]));
                 allExpenses[key].push({ id: Date.now(), name, amount, payers, splitBetween: participants, paidBy: paidStatus });
                 document.getElementById('itemName').value = ''; document.getElementById('itemAmount').value = '';
+                pushToCloud();
+            }
+        };
+
+        window.clearAllExpenses = () => {
+            if (confirm("Are you sure you want to clear all expenses for this month?")) {
+                const key = getMonthKey();
+                allExpenses[key] = [];
                 pushToCloud();
             }
         };
@@ -231,7 +243,6 @@
             document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> ${n}</label>`).join('');
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
             
-            // Re-render template selectors
             document.getElementById('tempPayerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="temp-payer-check"> ${n}</label>`).join('');
             document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
 
@@ -252,6 +263,10 @@
             monthItems.forEach(item => {
                 const count = item.splitBetween.filter(Boolean).length;
                 const perPerson = item.amount / count;
+                
+                // Determine who paid for the label
+                const actualPayer = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ') || 'Unknown';
+
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
                         userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
@@ -262,12 +277,16 @@
                 const div = document.createElement('div');
                 div.className = 'item-row';
                 div.innerHTML = `
-                    <div class="item-header"><span>${item.name} ($${item.amount})</span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
+                    <div class="item-header">
+                        <span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayer} paid</span></span>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
+                    </div>
                     <div style="display:flex; gap:5px; margin-top:8px;">
                         ${roommateNames.map((name, index) => {
                             if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
-                            return `<label class="split-pill" style="padding:4px 0; font-size:10px; ${item.paidBy[index]?'background:#eee; border-color:#eee; opacity:0.5':''}">
-                                <input type="checkbox" ${item.paidBy[index]?'checked':''} onchange="togglePaid(${item.id}, ${index})"> ${name}
+                            const isPaid = item.paidBy[index];
+                            return `<label class="split-pill ${isPaid ? 'pill-paid' : ''}" style="padding:4px 0; font-size:10px;">
+                                <input type="checkbox" ${isPaid ? 'checked' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
                             </label>`;
                         }).join('')}
                     </div>`;
@@ -284,4 +303,3 @@
     </script>
 </body>
 </html>
-

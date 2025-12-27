@@ -33,7 +33,6 @@
         .month-label { font-weight: 700; font-size: 16px; }
         .nav-btn { background: #E5E5EA; border: none; border-radius: 50%; width: 30px; height: 30px; }
 
-        /* 新增：总支出样式 */
         .total-banner { background: var(--primary); color: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .total-val { font-size: 20px; font-weight: 800; }
 
@@ -119,6 +118,14 @@
 
         <div class="card">
             <span class="card-title">Add Expense</span>
+            <div style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap;">
+                <span class="label-sm" style="margin:0; align-self:center;">Quick:</span>
+                <button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('Rent')">🏠 Rent</button>
+                <button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('Grocery')">🛒 Grocery</button>
+                <button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('Gas')">⛽ Gas</button>
+                <button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('Credit Card')">💳 Credit</button>
+            </div>
+
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                 <input type="text" id="itemName" placeholder="Item Name">
                 <input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
@@ -149,6 +156,12 @@
         let templates = [];
         let allExpenses = {};
         let db;
+
+        // Helper for Quick Tags
+        window.fillItem = (name) => {
+            document.getElementById('itemName').value = name;
+            document.getElementById('itemAmount').focus();
+        };
 
         function checkPassword() {
             if (document.getElementById('passInput').value === APP_PASSWORD) {
@@ -321,10 +334,8 @@
 
             const monthItems = allExpenses[key] || [];
             
-            // --- 新增：计算当月总支出 ---
             const monthlyTotal = monthItems.reduce((sum, item) => sum + (item.amount || 0), 0);
             document.getElementById('monthlyTotalDisplay').innerText = `$${monthlyTotal.toFixed(2)}`;
-            // ------------------------
 
             const container = document.getElementById('listContainer');
             container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';

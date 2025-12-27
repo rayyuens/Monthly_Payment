@@ -203,7 +203,6 @@
             if (name && amount) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
-                // Initial paid status: if you are the one who paid, your share is already "paid"
                 let paidStatus = participants.map((isPart, idx) => (isPart && payers[idx]));
                 allExpenses[key].push({ id: Date.now(), name, amount, payers, splitBetween: participants, paidBy: paidStatus });
                 document.getElementById('itemName').value = ''; document.getElementById('itemAmount').value = '';
@@ -223,7 +222,6 @@
             const key = getMonthKey();
             const item = allExpenses[key].find(e => e.id === id);
             if (item) { 
-                // Only allow toggling if the user was NOT the original payer
                 if (!item.payers[userIdx]) {
                     item.paidBy[userIdx] = !item.paidBy[userIdx]; 
                     pushToCloud(); 
@@ -286,8 +284,6 @@
                             if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
                             const isOriginalPayer = item.payers[index];
                             const isPaid = item.paidBy[index];
-                            
-                            // LOCK ONLY if they were the "Who Paid" person
                             return `<label class="split-pill ${isPaid ? 'pill-paid' : ''} ${isOriginalPayer ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;">
                                 <input type="checkbox" ${isPaid ? 'checked' : ''} ${isOriginalPayer ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
                             </label>`;
@@ -299,11 +295,12 @@
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-card">
                     <div class="user-name-tag">${name}</div>
-                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
-                    <div class="grand-total-tag">${userTotals[i]<=0 ? 'PAID' : '$' + userTotals[i].toFixed(2)}</div>
+                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:flex-start; gap:8px; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
+                    <div class="grand-total-tag" style="color: ${userTotals[i] <= 0 ? 'var(--success)' : 'var(--danger)'}">
+                        ${userTotals[i] <= 0 ? 'PAID' : '$' + userTotals[i].toFixed(2)}
+                    </div>
                 </div>`).join('');
         }
     </script>
 </body>
 </html>
-

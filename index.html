@@ -51,12 +51,12 @@
         .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
 
-        /* Notes Styling */
         .note-item { background: var(--note-bg); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-left: 4px solid #FFD600; }
         .note-text { font-weight: 500; color: #444; }
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
+        .item-desc { font-size: 10px; color: #8E8E93; font-weight: 400; margin-top: 2px; } /* New: Expense Note style */
         .payer-info { font-weight: 400; color: #8E8E93; font-size: 11px; margin-left: 4px; }
         .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
         
@@ -146,6 +146,8 @@
                 <input type="text" id="itemName" placeholder="Item Name">
                 <input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
             </div>
+            <input type="text" id="itemNote" placeholder="Notes (Optional: what was this for?)" style="margin-bottom: 8px; font-size: 12px;">
+            
             <span class="label-sm">Who Paid?</span>
             <div class="split-selector" id="payerSelector"></div>
             <span class="label-sm">Split Between:</span>
@@ -259,14 +261,18 @@
         window.addItem = () => {
             const name = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('itemAmount').value);
+            const note = document.getElementById('itemNote').value.trim(); // Get Note
             const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
             const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
             if (name && !isNaN(amount)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
                 let paidStatus = participants.map((isPart, idx) => (isPart && payers[idx]));
-                allExpenses[key].push({ id: Date.now(), name, amount, payers, splitBetween: participants, paidBy: paidStatus });
-                document.getElementById('itemName').value = ''; document.getElementById('itemAmount').value = '';
+                // Save 'note' in the item object
+                allExpenses[key].push({ id: Date.now(), name, amount, note, payers, splitBetween: participants, paidBy: paidStatus });
+                document.getElementById('itemName').value = ''; 
+                document.getElementById('itemAmount').value = '';
+                document.getElementById('itemNote').value = ''; // Clear Note
                 pushToCloud();
             }
         };
@@ -289,7 +295,7 @@
             templates.forEach(t => {
                 const splits = t.splitBetween || [true, true, true];
                 let paidStatus = splits.map((isPart, idx) => (isPart && t.payers[idx]));
-                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus });
+                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus, note: "" });
             });
             pushToCloud();
             document.getElementById('templateSection').style.display = 'none';
@@ -431,7 +437,13 @@
                 const actualPayerNames = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ');
                 const div = document.createElement('div');
                 div.className = 'item-row';
-                div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayerNames} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
+                // Modified Render logic to show the Note
+                div.innerHTML = `
+                    <div class="item-header">
+                        <span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayerNames} paid</span></span>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
+                    </div>
+                    ${item.note ? `<div class="item-desc">${item.note}</div>` : ''} 
                     <div style="display:flex; gap:5px; margin-top:8px;">
                         ${roommateNames.map((name, index) => {
                             if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
@@ -460,4 +472,3 @@
     </script>
 </body>
 </html>
-

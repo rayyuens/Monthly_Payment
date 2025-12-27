@@ -12,6 +12,7 @@
         :root {
             --primary: #007AFF; --bg: #F2F2F7; --card: #FFFFFF;
             --text: #1C1C1E; --success: #34C759; --danger: #FF3B30; --border: #D1D1D6;
+            --note-bg: #FFF9C4;
         }
 
         body {
@@ -49,6 +50,10 @@
 
         .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
         .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
+
+        /* Notes Styling */
+        .note-item { background: var(--note-bg); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-left: 4px solid #FFD600; }
+        .note-text { font-weight: 500; color: #444; }
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
@@ -89,6 +94,15 @@
             <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
             <div id="monthDisplay" class="month-label">Month</div>
             <button class="nav-btn" onclick="changeMonth(1)">❯</button>
+        </div>
+
+        <div class="card" style="border: 1px solid #FFD600;">
+            <span class="card-title">📝 Shopping Notes</span>
+            <div id="notesContainer" style="margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="noteInput" placeholder="What do we need?">
+                <button onclick="addNote()" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
+            </div>
         </div>
 
         <div class="total-banner">
@@ -152,12 +166,13 @@
     </div>
 
     <script>
-        const APP_PASSWORD = "  "; 
+        const APP_PASSWORD = " "; 
         let viewDate = new Date(); viewDate.setDate(1);
         let roommateNames = ["Ray", "Roy", "Irene"];
         let templates = [];
-        let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"]; // Default tags
+        let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
         let allExpenses = {};
+        let shoppingNotes = []; // New State
         let db;
 
         window.fillItem = (name, targetId = 'itemName') => {
@@ -196,13 +211,36 @@
                     templates = data.templates || [];
                     quickTags = data.quickTags || ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
                     allExpenses = data.expenses || {};
+                    shoppingNotes = data.notes || []; // Load Notes
                 }
                 render();
                 document.getElementById('cloudStatus').innerText = "● Cloud Synced";
             });
         }
 
-        window.pushToCloud = () => db.ref('roomiePay_v11').set({ names: roommateNames, templates, quickTags, expenses: allExpenses });
+        window.pushToCloud = () => db.ref('roomiePay_v11').set({ 
+            names: roommateNames, 
+            templates, 
+            quickTags, 
+            expenses: allExpenses,
+            notes: shoppingNotes // Push Notes
+        });
+
+        // Notes Logic
+        window.addNote = () => {
+            const input = document.getElementById('noteInput');
+            const val = input.value.trim();
+            if(val) {
+                shoppingNotes.push({ id: Date.now(), text: val });
+                input.value = '';
+                pushToCloud();
+            }
+        };
+
+        window.deleteNote = (id) => {
+            shoppingNotes = shoppingNotes.filter(n => n.id !== id);
+            pushToCloud();
+        };
 
         window.addCustomTag = () => {
             const val = document.getElementById('newTagName').value.trim();
@@ -334,7 +372,17 @@
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-            // Render Dynamic Quick Tags in Add Expense
+            // Render Shopping Notes
+            const notesContainer = document.getElementById('notesContainer');
+            notesContainer.innerHTML = shoppingNotes.length === 0 ? '<p style="font-size:11px; color:#888; text-align:center;">No current notes</p>' : 
+                shoppingNotes.map(n => `
+                    <div class="note-item">
+                        <span class="note-text">${n.text}</span>
+                        <button class="delete-btn" onclick="deleteNote(${n.id})">✕</button>
+                    </div>
+                `).join('');
+
+            // Render Dynamic Quick Tags
             document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm" style="margin:0; align-self:center;">Quick:</span>' + 
                 quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
 
@@ -412,5 +460,3 @@
     </script>
 </body>
 </html>
-
-

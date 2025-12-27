@@ -17,7 +17,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg); color: var(--text); margin: 0; padding: 10px;
-            padding-bottom: 260px; /* 增加底部间距适应新按钮 */
+            padding-bottom: 260px;
         }
 
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
@@ -58,7 +58,6 @@
         .user-name-tag { font-size: 10px; font-weight: 900; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #F2F2F7; margin-bottom: 5px; }
         .grand-total-tag { font-weight: 800; font-size: 13px; margin-top: 5px; border-top: 1px dashed #E5E5EA; }
         
-        /* 结算结果浮层样式 */
         #settlementModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:80%; max-width:300px; text-align:center; }
         #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
     </style>
@@ -75,7 +74,8 @@
 
     <div id="modalOverlay" onclick="closeSettlement()"></div>
     <div id="settlementModal">
-        <h3 style="margin-top:0; font-size:16px;">Who owes who?</h3>
+        <h3 style="margin-top:0; font-size:16px;">Final Settlement</h3>
+        <p style="font-size:10px; color:#888;">(Only showing unpaid items)</p>
         <div id="settlementResults" style="font-size:14px; line-height:1.6; color:#333; margin:15px 0;"></div>
         <button onclick="closeSettlement()" class="btn-add" style="margin:0; padding:8px;">Got it</button>
     </div>
@@ -98,9 +98,9 @@
                 <input type="text" id="tempName" placeholder="e.g. Rent">
                 <input type="number" id="tempAmount" placeholder="$" style="width:35%">
             </div>
-            <span class="label-sm">Usually Paid By:</span>
+            <span class="label-sm">Who usually pays?</span>
             <div class="split-selector" id="tempPayerSelector"></div>
-            <span class="label-sm">Split Between:</span>
+            <span class="label-sm">Split between:</span>
             <div class="split-selector" id="tempSplitSelector"></div>
             <div style="display:flex; gap:8px;">
                 <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save New</button>
@@ -124,12 +124,12 @@
         <div class="card">
             <span class="card-title">Checklist</span>
             <div id="listContainer"></div>
-            <button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear All for this Month</button>
+            <button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear Month</button>
         </div>
 
         <div class="summary-panel">
             <div class="summary-scroll" id="summaryGrid"></div>
-            <button onclick="calculateSettlement()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:700; margin-top:10px;">📊 Show Transfer Path (Who owes who)</button>
+            <button onclick="calculateSettlement()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:700; margin-top:10px;">📊 Show Transfer Path (Unpaid Only)</button>
         </div>
     </div>
 
@@ -219,7 +219,7 @@
         };
 
         window.clearAllExpenses = () => {
-            if (confirm("Clear all for this month?")) {
+            if (confirm("Clear all?")) {
                 const key = getMonthKey();
                 allExpenses[key] = [];
                 pushToCloud();
@@ -245,7 +245,6 @@
         window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
-        // --- 新增结算功能函数 ---
         window.calculateSettlement = () => {
             const key = getMonthKey();
             const monthItems = allExpenses[key] || [];
@@ -263,8 +262,14 @@
                 const paidPerPayer = totalAmount / payersCount;
 
                 roommateNames.forEach((_, i) => {
-                    if (item.payers[i]) balances[i] += (totalAmount / payersCount);
-                    if (item.splitBetween[i]) balances[i] -= sharePerPerson;
+                    // 逻辑改进：结算只考虑“还未勾选”的部分
+                    if (item.splitBetween[i] && !item.paidBy[i]) {
+                        balances[i] -= sharePerPerson;
+                        // 寻找谁垫付了这一笔未支付的部分
+                        item.payers.forEach((isPayer, pIdx) => {
+                            if (isPayer) balances[pIdx] += (sharePerPerson / payersCount);
+                        });
+                    }
                 });
             });
 
@@ -285,7 +290,7 @@
                 if (creditors[c].amt < 0.01) c++;
             }
 
-            document.getElementById('settlementResults').innerHTML = results.length > 0 ? results.join('<br>') : "Everything is settled! 🎉";
+            document.getElementById('settlementResults').innerHTML = results.length > 0 ? results.join('<br>') : "All unpaid items settled! 🎉";
             document.getElementById('modalOverlay').style.display = 'block';
             document.getElementById('settlementModal').style.display = 'block';
         };
@@ -306,7 +311,6 @@
             document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
 
             document.getElementById('templateList').innerHTML = templates.map((t, i) => {
-                const splittingWith = roommateNames.filter((_, idx) => t.splitBetween ? t.splitBetween[idx] : true).join(', ');
                 return `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`
             }).join('');
 
@@ -323,6 +327,7 @@
                 item.splitBetween.forEach((isPart, idx) => {
                     if (isPart) {
                         userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
+                        // 关键修改：只有未勾选 isPaid 的金额才计入总欠款
                         if (!item.paidBy[idx]) userTotals[idx] += perPerson;
                     }
                 });
@@ -347,8 +352,8 @@
                 <div class="user-summary-card">
                     <div class="user-name-tag">${name}</div>
                     ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:flex-start; gap:8px; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
-                    <div class="grand-total-tag" style="color: ${userTotals[i] <= 0 ? 'var(--success)' : 'var(--danger)'}">
-                        ${userTotals[i] <= 0 ? 'PAID' : '$' + userTotals[i].toFixed(2)}
+                    <div class="grand-total-tag" style="color: ${userTotals[i] <= 0.01 ? 'var(--success)' : 'var(--danger)'}">
+                        ${userTotals[i] <= 0.01 ? 'PAID' : '$' + userTotals[i].toFixed(2)}
                     </div>
                 </div>`).join('');
         }

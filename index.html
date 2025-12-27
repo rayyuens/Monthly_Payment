@@ -299,10 +299,11 @@
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-card">
                     <div class="user-name-tag">${name}</div>
-                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(0)}</span></div>`).join('')}
-                    <div class="grand-total-tag">${userTotals[i]<=0 ? 'PAID' : '$' + userTotals[i].toFixed(0)}</div>
+                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
+                    <div class="grand-total-tag">${userTotals[i]<=0 ? 'PAID' : '$' + userTotals[i].toFixed(2)}</div>
                 </div>`).join('');
         }
     </script>
 </body>
 </html>
+

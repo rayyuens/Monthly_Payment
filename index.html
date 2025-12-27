@@ -131,10 +131,20 @@
                 <input type="text" id="tempName" placeholder="e.g. Rent">
                 <input type="number" id="tempAmount" placeholder="$" style="width:35%">
             </div>
+            <input type="text" id="tempNote" placeholder="Notes (Optional)" style="margin-bottom: 8px; font-size: 12px;">
+            
             <span class="label-sm">Who usually pays?</span>
             <div class="split-selector" id="tempPayerSelector"></div>
+            
+            <div class="toggle-container">
+                <input type="checkbox" id="tempCustomSplitToggle" onchange="toggleTempCustomInputs()"> 
+                <label for="tempCustomSplitToggle">Use Custom Split Amounts ($)</label>
+            </div>
+            
             <span class="label-sm">Split between:</span>
             <div class="split-selector" id="tempSplitSelector"></div>
+            <div id="tempCustomAmountsContainer" style="display:none; gap:5px; margin-bottom:10px;"></div>
+
             <div style="display:flex; gap:8px;">
                 <button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save Template</button>
                 <button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
@@ -246,6 +256,11 @@
             document.getElementById('customAmountsContainer').style.display = isCustom ? 'flex' : 'none';
         };
 
+        window.toggleTempCustomInputs = () => {
+            const isCustom = document.getElementById('tempCustomSplitToggle').checked;
+            document.getElementById('tempCustomAmountsContainer').style.display = isCustom ? 'flex' : 'none';
+        };
+
         window.addNote = () => {
             const input = document.getElementById('noteInput');
             const val = input.value.trim();
@@ -318,11 +333,23 @@
         window.addTemplateItem = () => {
             const name = document.getElementById('tempName').value;
             const amount = parseFloat(document.getElementById('tempAmount').value);
+            const note = document.getElementById('tempNote').value.trim();
             const payers = Array.from(document.querySelectorAll('.temp-payer-check')).map(n => n.checked);
             const splits = Array.from(document.querySelectorAll('.temp-split-check')).map(n => n.checked);
+            
+            const isCustom = document.getElementById('tempCustomSplitToggle').checked;
+            let customAmounts = null;
+            if (isCustom) {
+                customAmounts = Array.from(document.querySelectorAll('#tempCustomAmountsContainer .custom-val-input')).map(i => parseFloat(i.value) || 0);
+            }
+
             if(name && !isNaN(amount)) {
-                templates.push({ name, amount, payers, splitBetween: splits });
-                document.getElementById('tempName').value = ''; document.getElementById('tempAmount').value = '';
+                templates.push({ name, amount, note, payers, splitBetween: splits, customAmounts: customAmounts });
+                document.getElementById('tempName').value = ''; 
+                document.getElementById('tempAmount').value = '';
+                document.getElementById('tempNote').value = '';
+                document.getElementById('tempCustomSplitToggle').checked = false;
+                toggleTempCustomInputs();
                 pushToCloud();
             }
         };
@@ -333,7 +360,16 @@
             templates.forEach(t => {
                 const splits = t.splitBetween || [true, true, true];
                 let paidStatus = splits.map((isPart, idx) => (isPart && t.payers[idx]));
-                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus, note: "", customAmounts: null });
+                allExpenses[key].push({ 
+                    id: Date.now() + Math.random(), 
+                    name: t.name, 
+                    amount: t.amount, 
+                    note: t.note || "",
+                    payers: t.payers, 
+                    splitBetween: splits, 
+                    paidBy: paidStatus, 
+                    customAmounts: t.customAmounts || null 
+                });
             });
             pushToCloud();
             document.getElementById('templateSection').style.display = 'none';
@@ -449,9 +485,10 @@
             
             document.getElementById('tempPayerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="temp-payer-check"> ${n}</label>`).join('');
             document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
+            document.getElementById('tempCustomAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
 
             document.getElementById('templateList').innerHTML = templates.map((t, i) => {
-                return `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`
+                return `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount}) ${t.customAmounts ? ' [Custom]' : ''} <span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`
             }).join('');
 
             const monthItems = allExpenses[key] || [];
@@ -487,7 +524,6 @@
                 const div = document.createElement('div');
                 div.className = 'item-row';
                 
-                // SHOW CUSTOM SPLIT INFO IN CHECKLIST
                 let customSplitLabel = "";
                 if (item.customAmounts) {
                     customSplitLabel = `<div class="custom-split-info">Custom: ` + 

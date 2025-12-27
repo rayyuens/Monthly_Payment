@@ -54,9 +54,9 @@
         
         .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); padding: 12px; border-top: 1px solid #D1D1D6; z-index: 1000; }
         .summary-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
-        .user-summary-card { min-width: 130px; flex-shrink: 0; background: white; padding: 10px; border-radius: 12px; border: 1px solid #E5E5EA; }
+        .user-summary-card { min-width: 140px; flex-shrink: 0; background: white; padding: 10px; border-radius: 12px; border: 1px solid #E5E5EA; }
         .user-name-tag { font-size: 10px; font-weight: 900; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #F2F2F7; margin-bottom: 5px; }
-        .grand-total-tag { font-weight: 800; font-size: 13px; margin-top: 5px; border-top: 1px dashed #E5E5EA; }
+        .grand-total-tag { font-weight: 800; font-size: 12px; margin-top: 5px; border-top: 1px dashed #E5E5EA; padding-top: 5px; }
         
         #settlementModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:80%; max-width:300px; text-align:center; }
         #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
@@ -75,7 +75,7 @@
     <div id="modalOverlay" onclick="closeSettlement()"></div>
     <div id="settlementModal">
         <h3 style="margin-top:0; font-size:16px;">Final Settlement</h3>
-        <p style="font-size:10px; color:#888;">(Only showing unpaid items)</p>
+        <p style="font-size:10px; color:#888;">(Calculated based on unpaid items)</p>
         <div id="settlementResults" style="font-size:14px; line-height:1.6; color:#333; margin:15px 0;"></div>
         <button onclick="closeSettlement()" class="btn-add" style="margin:0; padding:8px;">Got it</button>
     </div>
@@ -129,7 +129,7 @@
 
         <div class="summary-panel">
             <div class="summary-scroll" id="summaryGrid"></div>
-            <button onclick="calculateSettlement()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:700; margin-top:10px;">📊 Show Transfer Path</button>
+            <button onclick="calculateSettlement()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:700; margin-top:10px;">📊 Calculate Settlement Path</button>
         </div>
     </div>
 
@@ -259,13 +259,9 @@
                 const payersCount = item.payers.filter(Boolean).length;
                 if (payersCount === 0) return;
                 
-                const paidPerPayer = totalAmount / payersCount;
-
                 roommateNames.forEach((_, i) => {
-                    // 逻辑改进：结算只考虑“还未勾选”的部分
                     if (item.splitBetween[i] && !item.paidBy[i]) {
                         balances[i] -= sharePerPerson;
-                        // 寻找谁垫付了这一笔未支付的部分
                         item.payers.forEach((isPayer, pIdx) => {
                             if (isPayer) balances[pIdx] += (sharePerPerson / payersCount);
                         });
@@ -318,20 +314,32 @@
             const container = document.getElementById('listContainer');
             container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
             
-            let userStats = roommateNames.map(() => []), userTotals = roommateNames.map(() => 0);
+            let userStats = roommateNames.map(() => []); 
+            let userTotalOwed = roommateNames.map(() => 0); 
+            let userTotalPaidUpfront = roommateNames.map(() => 0);
+
             monthItems.forEach(item => {
-                const count = item.splitBetween.filter(Boolean).length;
-                const perPerson = item.amount / count;
+                const totalAmount = item.amount;
+                const participantsCount = item.splitBetween.filter(Boolean).length;
+                const payersCount = item.payers.filter(Boolean).length;
+
+                if (participantsCount > 0) {
+                    const perPerson = totalAmount / participantsCount;
+                    const perPayer = totalAmount / (payersCount || 1);
+
+                    item.payers.forEach((isPayer, idx) => {
+                        if (isPayer) userTotalPaidUpfront[idx] += perPayer;
+                    });
+
+                    item.splitBetween.forEach((isPart, idx) => {
+                        if (isPart) {
+                            userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
+                            if (!item.paidBy[idx]) userTotalOwed[idx] += perPerson;
+                        }
+                    });
+                }
+
                 const actualPayerNames = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ');
-
-                item.splitBetween.forEach((isPart, idx) => {
-                    if (isPart) {
-                        userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
-                        // 关键修改：只有未勾选 isPaid 的金额才计入总欠款
-                        if (!item.paidBy[idx]) userTotals[idx] += perPerson;
-                    }
-                });
-
                 const div = document.createElement('div');
                 div.className = 'item-row';
                 div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayerNames} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
@@ -348,16 +356,27 @@
                 container.appendChild(div);
             });
 
-            document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
+            document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
+                const unpaidDebt = userTotalOwed[i];
+                const totalPaid = userTotalPaidUpfront[i];
+                
+                return `
                 <div class="user-summary-card">
                     <div class="user-name-tag">${name}</div>
-                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:flex-start; gap:8px; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
-                    <div class="grand-total-tag" style="color: ${userTotals[i] <= 0.01 ? 'var(--success)' : 'var(--danger)'}">
-                        ${userTotals[i] <= 0.01 ? 'PAID' : '$' + userTotals[i].toFixed(2)}
+                    <div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${totalPaid.toFixed(2)}</div>
+                    
+                    ${userStats[i].map(d => `
+                        <div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}">
+                            <span>${d.name}</span><span>$${d.amount.toFixed(2)}</span>
+                        </div>
+                    `).join('')}
+
+                    <div class="grand-total-tag" style="color: ${unpaidDebt <= 0.01 ? 'var(--success)' : 'var(--danger)'}">
+                        ${unpaidDebt <= 0.01 ? 'PAID' : 'OWE: $' + unpaidDebt.toFixed(2)}
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
     </script>
 </body>
 </html>
-

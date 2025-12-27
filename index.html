@@ -42,7 +42,7 @@
         
         .split-selector { display: flex; gap: 5px; margin-bottom: 5px; }
         .split-pill { flex: 1; background: #fff; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--border); transition: all 0.2s ease; }
-        .split-pill input { width: 13px; height: 13px; margin: 0; }
+        .split-pill input[type="checkbox"] { width: 13px; height: 13px; margin: 0; }
         .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
         .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; }
@@ -56,7 +56,7 @@
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
-        .item-desc { font-size: 10px; color: #8E8E93; font-weight: 400; margin-top: 2px; } /* New: Expense Note style */
+        .item-desc { font-size: 10px; color: #8E8E93; font-weight: 400; margin-top: 2px; }
         .payer-info { font-weight: 400; color: #8E8E93; font-size: 11px; margin-left: 4px; }
         .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
         
@@ -68,6 +68,11 @@
         
         #settlementModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:80%; max-width:300px; text-align:center; }
         #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
+
+        /* Custom Split specific styles */
+        .custom-split-input { font-size: 10px; padding: 4px; margin-top: 4px; text-align: center; }
+        .toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
+        .toggle-container input { width: auto; }
     </style>
 </head>
 <body>
@@ -140,7 +145,7 @@
             <span class="card-title">Add Expense</span>
             <div id="quickTagsContainer" style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap;">
                 <span class="label-sm" style="margin:0; align-self:center;">Quick:</span>
-                </div>
+            </div>
 
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                 <input type="text" id="itemName" placeholder="Item Name">
@@ -150,8 +155,16 @@
             
             <span class="label-sm">Who Paid?</span>
             <div class="split-selector" id="payerSelector"></div>
+
+            <div class="toggle-container">
+                <input type="checkbox" id="customSplitToggle" onchange="toggleCustomInputs()"> 
+                <label for="customSplitToggle">Use Custom Split Amounts ($)</label>
+            </div>
+
             <span class="label-sm">Split Between:</span>
             <div class="split-selector" id="splitSelector"></div>
+            <div id="customAmountsContainer" style="display:none; gap:5px; margin-bottom:10px;"></div>
+
             <button onclick="addItem()" class="btn-add">Add to List</button>
         </div>
 
@@ -168,13 +181,13 @@
     </div>
 
     <script>
-        const APP_PASSWORD = "  "; 
+        const APP_PASSWORD = "   "; 
         let viewDate = new Date(); viewDate.setDate(1);
         let roommateNames = ["Ray", "Roy", "Irene"];
         let templates = [];
         let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
         let allExpenses = {};
-        let shoppingNotes = []; // New State
+        let shoppingNotes = []; 
         let db;
 
         window.fillItem = (name, targetId = 'itemName') => {
@@ -213,7 +226,7 @@
                     templates = data.templates || [];
                     quickTags = data.quickTags || ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
                     allExpenses = data.expenses || {};
-                    shoppingNotes = data.notes || []; // Load Notes
+                    shoppingNotes = data.notes || []; 
                 }
                 render();
                 document.getElementById('cloudStatus').innerText = "● Cloud Synced";
@@ -225,10 +238,15 @@
             templates, 
             quickTags, 
             expenses: allExpenses,
-            notes: shoppingNotes // Push Notes
+            notes: shoppingNotes 
         });
 
-        // Notes Logic
+        // Toggle Custom Split Logic
+        window.toggleCustomInputs = () => {
+            const isCustom = document.getElementById('customSplitToggle').checked;
+            document.getElementById('customAmountsContainer').style.display = isCustom ? 'flex' : 'none';
+        };
+
         window.addNote = () => {
             const input = document.getElementById('noteInput');
             const val = input.value.trim();
@@ -261,18 +279,39 @@
         window.addItem = () => {
             const name = document.getElementById('itemName').value;
             const amount = parseFloat(document.getElementById('itemAmount').value);
-            const note = document.getElementById('itemNote').value.trim(); // Get Note
+            const note = document.getElementById('itemNote').value.trim();
             const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
             const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
+            
+            const isCustom = document.getElementById('customSplitToggle').checked;
+            let customAmounts = null;
+
+            if (isCustom) {
+                customAmounts = Array.from(document.querySelectorAll('.custom-val-input')).map(i => parseFloat(i.value) || 0);
+                const sum = customAmounts.reduce((a, b) => a + b, 0);
+                if (Math.abs(sum - amount) > 0.01) {
+                    alert(`Split amounts ($${sum.toFixed(2)}) must equal total ($${amount.toFixed(2)})`);
+                    return;
+                }
+            }
+
             if (name && !isNaN(amount)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
                 let paidStatus = participants.map((isPart, idx) => (isPart && payers[idx]));
-                // Save 'note' in the item object
-                allExpenses[key].push({ id: Date.now(), name, amount, note, payers, splitBetween: participants, paidBy: paidStatus });
+                
+                allExpenses[key].push({ 
+                    id: Date.now(), name, amount, note, payers, 
+                    splitBetween: participants, 
+                    paidBy: paidStatus,
+                    customAmounts: customAmounts // Save custom amounts if they exist
+                });
+
                 document.getElementById('itemName').value = ''; 
                 document.getElementById('itemAmount').value = '';
-                document.getElementById('itemNote').value = ''; // Clear Note
+                document.getElementById('itemNote').value = '';
+                document.getElementById('customSplitToggle').checked = false;
+                toggleCustomInputs();
                 pushToCloud();
             }
         };
@@ -295,7 +334,7 @@
             templates.forEach(t => {
                 const splits = t.splitBetween || [true, true, true];
                 let paidStatus = splits.map((isPart, idx) => (isPart && t.payers[idx]));
-                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus, note: "" });
+                allExpenses[key].push({ id: Date.now() + Math.random(), name: t.name, amount: t.amount, payers: t.payers, splitBetween: splits, paidBy: paidStatus, note: "", customAmounts: null });
             });
             pushToCloud();
             document.getElementById('templateSection').style.display = 'none';
@@ -332,15 +371,25 @@
             const key = getMonthKey();
             const monthItems = allExpenses[key] || [];
             let balances = roommateNames.map(() => 0);
+            
             monthItems.forEach(item => {
                 const totalAmount = item.amount;
-                const participantsCount = item.splitBetween.filter(Boolean).length;
-                if (participantsCount === 0) return;
-                const sharePerPerson = totalAmount / participantsCount;
                 const payersCount = item.payers.filter(Boolean).length;
                 if (payersCount === 0) return;
+
                 roommateNames.forEach((_, i) => {
-                    if (item.splitBetween[i] && !item.paidBy[i]) {
+                    // Calculate individual share
+                    let sharePerPerson = 0;
+                    if (item.customAmounts) {
+                        sharePerPerson = item.customAmounts[i];
+                    } else {
+                        const participantsCount = item.splitBetween.filter(Boolean).length;
+                        if (participantsCount > 0 && item.splitBetween[i]) {
+                            sharePerPerson = totalAmount / participantsCount;
+                        }
+                    }
+
+                    if (sharePerPerson > 0 && !item.paidBy[i]) {
                         balances[i] -= sharePerPerson;
                         item.payers.forEach((isPayer, pIdx) => {
                             if (isPayer) balances[pIdx] += (sharePerPerson / payersCount);
@@ -348,6 +397,7 @@
                     }
                 });
             });
+
             let debtors = [], creditors = [];
             balances.forEach((bal, i) => {
                 if (bal < -0.01) debtors.push({ name: roommateNames[i], amt: -bal });
@@ -378,7 +428,7 @@
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-            // Render Shopping Notes
+            // Notes
             const notesContainer = document.getElementById('notesContainer');
             notesContainer.innerHTML = shoppingNotes.length === 0 ? '<p style="font-size:11px; color:#888; text-align:center;">No current notes</p>' : 
                 shoppingNotes.map(n => `
@@ -388,19 +438,21 @@
                     </div>
                 `).join('');
 
-            // Render Dynamic Quick Tags
+            // Tags
             document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm" style="margin:0; align-self:center;">Quick:</span>' + 
                 quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
 
-            // Render Tags in Settings Manager
             document.getElementById('customTagsList').innerHTML = quickTags.map((tag, i) => 
                 `<div class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px; display:flex; align-items:center; gap:5px;">
                     <span onclick="fillItem('${tag}', 'tempName')">${tag}</span>
                     <span style="color:red; font-weight:800;" onclick="removeTag(${i})">×</span>
                 </div>`).join('');
 
+            // Selectors
             document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> ${n}</label>`).join('');
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
+            document.getElementById('customAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
+            
             document.getElementById('tempPayerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="temp-payer-check"> ${n}</label>`).join('');
             document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
 
@@ -421,23 +473,33 @@
 
             monthItems.forEach(item => {
                 const totalAmount = item.amount;
-                const participantsCount = item.splitBetween.filter(Boolean).length;
                 const payersCount = item.payers.filter(Boolean).length;
-                if (participantsCount > 0) {
-                    const perPerson = totalAmount / participantsCount;
-                    const perPayer = totalAmount / (payersCount || 1);
-                    item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += perPayer; });
-                    item.splitBetween.forEach((isPart, idx) => {
-                        if (isPart) {
-                            userStats[idx].push({ name: item.name, amount: perPerson, isPaid: item.paidBy[idx] });
-                            if (!item.paidBy[idx]) userTotalOwed[idx] += perPerson;
-                        }
-                    });
-                }
+                const perPayer = totalAmount / (payersCount || 1);
+                
+                item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += perPayer; });
+
+                roommateNames.forEach((_, idx) => {
+                    let share = 0;
+                    let isPart = false;
+
+                    if (item.customAmounts) {
+                        share = item.customAmounts[idx];
+                        isPart = share > 0;
+                    } else {
+                        isPart = item.splitBetween[idx];
+                        const count = item.splitBetween.filter(Boolean).length;
+                        share = isPart ? (totalAmount / count) : 0;
+                    }
+
+                    if (isPart) {
+                        userStats[idx].push({ name: item.name, amount: share, isPaid: item.paidBy[idx] });
+                        if (!item.paidBy[idx]) userTotalOwed[idx] += share;
+                    }
+                });
+
                 const actualPayerNames = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ');
                 const div = document.createElement('div');
                 div.className = 'item-row';
-                // Modified Render logic to show the Note
                 div.innerHTML = `
                     <div class="item-header">
                         <span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayerNames} paid</span></span>
@@ -446,7 +508,9 @@
                     ${item.note ? `<div class="item-desc">${item.note}</div>` : ''} 
                     <div style="display:flex; gap:5px; margin-top:8px;">
                         ${roommateNames.map((name, index) => {
-                            if (!item.splitBetween[index]) return `<div style="flex:1"></div>`;
+                            const shareForUser = item.customAmounts ? item.customAmounts[index] : (item.splitBetween[index] ? 1 : 0);
+                            if (shareForUser <= 0 && !item.splitBetween[index]) return `<div style="flex:1"></div>`;
+                            
                             const isOriginalPayer = item.payers[index];
                             const isPaid = item.paidBy[index];
                             return `<label class="split-pill ${isPaid ? 'pill-paid' : ''} ${isOriginalPayer ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;">

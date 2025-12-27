@@ -57,6 +57,7 @@
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
         .item-desc { font-size: 10px; color: #8E8E93; font-weight: 400; margin-top: 2px; }
+        .custom-split-info { font-size: 9px; color: var(--primary); font-weight: 600; margin-top: 2px; font-style: italic; }
         .payer-info { font-weight: 400; color: #8E8E93; font-size: 11px; margin-left: 4px; }
         .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
         
@@ -69,8 +70,7 @@
         #settlementModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:80%; max-width:300px; text-align:center; }
         #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
 
-        /* Custom Split specific styles */
-        .custom-split-input { font-size: 10px; padding: 4px; margin-top: 4px; text-align: center; }
+        .custom-val-input { font-size: 11px; padding: 6px; text-align: center; }
         .toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
         .toggle-container input { width: auto; }
     </style>
@@ -241,7 +241,6 @@
             notes: shoppingNotes 
         });
 
-        // Toggle Custom Split Logic
         window.toggleCustomInputs = () => {
             const isCustom = document.getElementById('customSplitToggle').checked;
             document.getElementById('customAmountsContainer').style.display = isCustom ? 'flex' : 'none';
@@ -290,7 +289,7 @@
                 customAmounts = Array.from(document.querySelectorAll('.custom-val-input')).map(i => parseFloat(i.value) || 0);
                 const sum = customAmounts.reduce((a, b) => a + b, 0);
                 if (Math.abs(sum - amount) > 0.01) {
-                    alert(`Split amounts ($${sum.toFixed(2)}) must equal total ($${amount.toFixed(2)})`);
+                    alert(`Custom total ($${sum.toFixed(2)}) must match item total ($${amount.toFixed(2)})`);
                     return;
                 }
             }
@@ -304,7 +303,7 @@
                     id: Date.now(), name, amount, note, payers, 
                     splitBetween: participants, 
                     paidBy: paidStatus,
-                    customAmounts: customAmounts // Save custom amounts if they exist
+                    customAmounts: customAmounts 
                 });
 
                 document.getElementById('itemName').value = ''; 
@@ -373,26 +372,22 @@
             let balances = roommateNames.map(() => 0);
             
             monthItems.forEach(item => {
-                const totalAmount = item.amount;
                 const payersCount = item.payers.filter(Boolean).length;
                 if (payersCount === 0) return;
 
                 roommateNames.forEach((_, i) => {
-                    // Calculate individual share
-                    let sharePerPerson = 0;
+                    let share = 0;
                     if (item.customAmounts) {
-                        sharePerPerson = item.customAmounts[i];
+                        share = item.customAmounts[i];
                     } else {
-                        const participantsCount = item.splitBetween.filter(Boolean).length;
-                        if (participantsCount > 0 && item.splitBetween[i]) {
-                            sharePerPerson = totalAmount / participantsCount;
-                        }
+                        const partCount = item.splitBetween.filter(Boolean).length;
+                        if (partCount > 0 && item.splitBetween[i]) share = item.amount / partCount;
                     }
 
-                    if (sharePerPerson > 0 && !item.paidBy[i]) {
-                        balances[i] -= sharePerPerson;
+                    if (share > 0 && !item.paidBy[i]) {
+                        balances[i] -= share;
                         item.payers.forEach((isPayer, pIdx) => {
-                            if (isPayer) balances[pIdx] += (sharePerPerson / payersCount);
+                            if (isPayer) balances[pIdx] += (share / payersCount);
                         });
                     }
                 });
@@ -408,8 +403,7 @@
             while (d < debtors.length && c < creditors.length) {
                 let settleAmt = Math.min(debtors[d].amt, creditors[c].amt);
                 results.push(`<b>${debtors[d].name}</b> → $${settleAmt.toFixed(2)} → <b>${creditors[c].name}</b>`);
-                debtors[d].amt -= settleAmt;
-                creditors[c].amt -= settleAmt;
+                debtors[d].amt -= settleAmt; creditors[c].amt -= settleAmt;
                 if (debtors[d].amt < 0.01) d++;
                 if (creditors[c].amt < 0.01) c++;
             }
@@ -448,7 +442,7 @@
                     <span style="color:red; font-weight:800;" onclick="removeTag(${i})">×</span>
                 </div>`).join('');
 
-            // Selectors
+            // Inputs
             document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> ${n}</label>`).join('');
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
             document.getElementById('customAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
@@ -480,18 +474,10 @@
 
                 roommateNames.forEach((_, idx) => {
                     let share = 0;
-                    let isPart = false;
+                    if (item.customAmounts) share = item.customAmounts[idx];
+                    else if (item.splitBetween[idx]) share = totalAmount / item.splitBetween.filter(Boolean).length;
 
-                    if (item.customAmounts) {
-                        share = item.customAmounts[idx];
-                        isPart = share > 0;
-                    } else {
-                        isPart = item.splitBetween[idx];
-                        const count = item.splitBetween.filter(Boolean).length;
-                        share = isPart ? (totalAmount / count) : 0;
-                    }
-
-                    if (isPart) {
+                    if (share > 0) {
                         userStats[idx].push({ name: item.name, amount: share, isPaid: item.paidBy[idx] });
                         if (!item.paidBy[idx]) userTotalOwed[idx] += share;
                     }
@@ -500,16 +486,26 @@
                 const actualPayerNames = roommateNames.filter((_, idx) => item.payers[idx]).join(' & ');
                 const div = document.createElement('div');
                 div.className = 'item-row';
+                
+                // SHOW CUSTOM SPLIT INFO IN CHECKLIST
+                let customSplitLabel = "";
+                if (item.customAmounts) {
+                    customSplitLabel = `<div class="custom-split-info">Custom: ` + 
+                        roommateNames.map((n, i) => item.customAmounts[i] > 0 ? `${n} $${item.customAmounts[i].toFixed(2)}` : null)
+                        .filter(Boolean).join(' | ') + `</div>`;
+                }
+
                 div.innerHTML = `
                     <div class="item-header">
                         <span>${item.name} ($${item.amount}) <span class="payer-info">${actualPayerNames} paid</span></span>
                         <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
                     </div>
                     ${item.note ? `<div class="item-desc">${item.note}</div>` : ''} 
+                    ${customSplitLabel}
                     <div style="display:flex; gap:5px; margin-top:8px;">
                         ${roommateNames.map((name, index) => {
-                            const shareForUser = item.customAmounts ? item.customAmounts[index] : (item.splitBetween[index] ? 1 : 0);
-                            if (shareForUser <= 0 && !item.splitBetween[index]) return `<div style="flex:1"></div>`;
+                            const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index];
+                            if (!hasShare) return `<div style="flex:1"></div>`;
                             
                             const isOriginalPayer = item.payers[index];
                             const isPaid = item.paidBy[index];
@@ -523,11 +519,10 @@
 
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
                 const unpaidDebt = userTotalOwed[i];
-                const totalPaid = userTotalPaidUpfront[i];
                 return `
                 <div class="user-summary-card">
                     <div class="user-name-tag">${name}</div>
-                    <div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${totalPaid.toFixed(2)}</div>
+                    <div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${userTotalPaidUpfront[i].toFixed(2)}</div>
                     ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
                     <div class="grand-total-tag" style="color: ${unpaidDebt <= 0.01 ? 'var(--success)' : 'var(--danger)'}">${unpaidDebt <= 0.01 ? 'PAID' : 'OWE: $' + unpaidDebt.toFixed(2)}</div>
                 </div>`;

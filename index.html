@@ -7,6 +7,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-storage-compat.js"></script>
 
     <style>
         :root {
@@ -53,6 +54,8 @@
 
         .note-item { background: var(--note-bg); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-left: 4px solid #FFD600; }
         .note-text { font-weight: 500; color: #444; }
+        /* Style for note image thumbnails */
+        .note-img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; margin-right: 8px; border: 1px solid #ddd; }
 
         .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
         .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
@@ -109,10 +112,13 @@
         <div class="card" style="border: 1px solid #FFD600;">
             <span class="card-title">📝 Shopping Notes</span>
             <div id="notesContainer" style="margin-bottom: 10px;"></div>
-            <div style="display: flex; gap: 5px;">
+            <div style="display: flex; gap: 5px; align-items: center;">
                 <input type="text" id="noteInput" placeholder="What do we need?">
-                <button onclick="addNote()" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
+                <label for="noteImageInput" style="cursor:pointer; background:#eee; padding:8px; border-radius:8px; font-size:14px;">🖼️</label>
+                <input type="file" id="noteImageInput" accept="image/*" style="display:none">
+                <button onclick="addNote()" id="addNoteBtn" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
             </div>
+            <div id="uploadStatus" style="font-size: 9px; color: var(--primary); margin-top: 4px; display: none; text-align: center;">Uploading image...</div>
         </div>
 
         <div class="total-banner">
@@ -192,7 +198,7 @@
         let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
         let allExpenses = {};
         let shoppingNotes = []; 
-        let db;
+        let db, storage; // Added storage variable
 
         window.fillItem = (name, targetId = 'itemName') => {
             document.getElementById(targetId).value = name;
@@ -219,10 +225,12 @@
                 apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
                 authDomain: "roomiepay-76a38.firebaseapp.com",
                 databaseURL: "https://roomiepay-76a38-default-rtdb.firebaseio.com",
-                projectId: "roomiepay-76a38"
+                projectId: "roomiepay-76a38",
+                storageBucket: "roomiepay-76a38.appspot.com" // Added storage bucket
             };
             if (!firebase.apps.length) firebase.initializeApp(config);
             db = firebase.database();
+            storage = firebase.storage(); // Initialize Storage
             db.ref('roomiePay_v11').on('value', (snap) => {
                 const data = snap.val();
                 if (data) {
@@ -249,15 +257,56 @@
             document.getElementById('tempCustomAmountsContainer').style.display = document.getElementById('tempCustomSplitToggle').checked ? 'flex' : 'none';
         };
 
-        window.addNote = () => {
+        // Updated addNote with Image Upload
+        window.addNote = async () => {
             const input = document.getElementById('noteInput');
-            if(input.value.trim()) {
-                shoppingNotes.push({ id: Date.now(), text: input.value.trim() });
-                input.value = ''; pushToCloud();
+            const fileInput = document.getElementById('noteImageInput');
+            const btn = document.getElementById('addNoteBtn');
+            const status = document.getElementById('uploadStatus');
+            
+            let text = input.value.trim();
+            let file = fileInput.files[0];
+
+            if(!text && !file) return;
+
+            btn.disabled = true;
+            let imgUrl = null;
+            let storagePath = null;
+
+            if (file) {
+                status.style.display = 'block';
+                storagePath = `notes/${Date.now()}_${file.name}`;
+                const storageRef = storage.ref(storagePath);
+                try {
+                    await storageRef.put(file);
+                    imgUrl = await storageRef.getDownloadURL();
+                } catch (e) { alert("Upload failed"); }
             }
+
+            shoppingNotes.push({ 
+                id: Date.now(), 
+                text: text, 
+                image: imgUrl,
+                path: storagePath // Store path so we can delete it later
+            });
+
+            input.value = '';
+            fileInput.value = '';
+            status.style.display = 'none';
+            btn.disabled = false;
+            pushToCloud();
         };
 
-        window.deleteNote = (id) => { shoppingNotes = shoppingNotes.filter(n => n.id !== id); pushToCloud(); };
+        // Updated deleteNote with Image Deletion from Cloud
+        window.deleteNote = async (id) => { 
+            const note = shoppingNotes.find(n => n.id === id);
+            if (note && note.path) {
+                try { await storage.ref(note.path).delete(); } catch(e) { console.log("Cloud file not found or already deleted"); }
+            }
+            shoppingNotes = shoppingNotes.filter(n => n.id !== id); 
+            pushToCloud(); 
+        };
+
         window.addCustomTag = () => {
             const val = document.getElementById('newTagName').value.trim();
             if(val) { quickTags.push(val); document.getElementById('newTagName').value = ''; pushToCloud(); }
@@ -357,7 +406,6 @@
             document.getElementById('settlementModal').style.display = 'block';
         };
 
-        // NEW: Detailed Popup Logic
         window.openDetails = (idx) => {
             const key = getMonthKey();
             const items = allExpenses[key] || [];
@@ -399,12 +447,19 @@
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
-            // Notes & Tags
-            document.getElementById('notesContainer').innerHTML = shoppingNotes.map(n => `<div class="note-item"><span class="note-text">${n.text}</span><button class="delete-btn" onclick="deleteNote(${n.id})">✕</button></div>`).join('');
+            // Notes Render with Image Preview
+            document.getElementById('notesContainer').innerHTML = shoppingNotes.map(n => `
+                <div class="note-item">
+                    <div style="display:flex; align-items:center;">
+                        ${n.image ? `<img src="${n.image}" class="note-img" onclick="window.open('${n.image}')">` : ''}
+                        <span class="note-text">${n.text || (n.image ? 'Image Only' : '')}</span>
+                    </div>
+                    <button class="delete-btn" onclick="deleteNote(${n.id})">✕</button>
+                </div>`).join('');
+
             document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm" style="margin:0; align-self:center;">Quick:</span>' + 
                 quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
 
-            // Payer Selectors
             const genCheck = (cls) => roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}"> ${n}</label>`).join('');
             document.getElementById('payerSelector').innerHTML = genCheck('payer-check');
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
@@ -416,7 +471,6 @@
             const monthItems = allExpenses[key] || [];
             document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
 
-            // List Logic
             let userStats = roommateNames.map(() => []);
             let userTotalOwed = roommateNames.map(() => 0);
             let userTotalPaidUpfront = roommateNames.map(() => 0);
@@ -453,7 +507,6 @@
                 container.appendChild(div);
             });
 
-            // Summary Grid (RESTORED VIEW + POPUP TRIGGER)
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
                 <div class="user-summary-card" onclick="openDetails(${i})">
                     <div class="user-name-tag">${name} ℹ️</div>

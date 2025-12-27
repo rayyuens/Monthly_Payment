@@ -33,6 +33,10 @@
         .month-label { font-weight: 700; font-size: 16px; }
         .nav-btn { background: #E5E5EA; border: none; border-radius: 50%; width: 30px; height: 30px; }
 
+        /* 新增：总支出样式 */
+        .total-banner { background: var(--primary); color: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .total-val { font-size: 20px; font-weight: 800; }
+
         input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size: 14px; width: 100%; box-sizing: border-box; outline: none; }
         .label-sm { font-size: 9px; color: #666; font-weight: 700; margin: 8px 0 4px 0; display: block; }
         
@@ -87,6 +91,11 @@
             <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
             <div id="monthDisplay" class="month-label">Month</div>
             <button class="nav-btn" onclick="changeMonth(1)">❯</button>
+        </div>
+
+        <div class="total-banner">
+            <span style="font-size: 12px; font-weight: 600;">Total Expense</span>
+            <span class="total-val" id="monthlyTotalDisplay">$0.00</span>
         </div>
 
         <button class="btn-template-toggle" onclick="toggleTemplateView()">⚙️ Template Settings</button>
@@ -184,7 +193,7 @@
             const amount = parseFloat(document.getElementById('itemAmount').value);
             const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
             const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
-            if (name && amount) {
+            if (name && !isNaN(amount)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
                 let paidStatus = participants.map((isPart, idx) => (isPart && payers[idx]));
@@ -199,7 +208,7 @@
             const amount = parseFloat(document.getElementById('tempAmount').value);
             const payers = Array.from(document.querySelectorAll('.temp-payer-check')).map(n => n.checked);
             const splits = Array.from(document.querySelectorAll('.temp-split-check')).map(n => n.checked);
-            if(name && amount) {
+            if(name && !isNaN(amount)) {
                 templates.push({ name, amount, payers, splitBetween: splits });
                 document.getElementById('tempName').value = ''; document.getElementById('tempAmount').value = '';
                 pushToCloud();
@@ -311,6 +320,12 @@
             }).join('');
 
             const monthItems = allExpenses[key] || [];
+            
+            // --- 新增：计算当月总支出 ---
+            const monthlyTotal = monthItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+            document.getElementById('monthlyTotalDisplay').innerText = `$${monthlyTotal.toFixed(2)}`;
+            // ------------------------
+
             const container = document.getElementById('listContainer');
             container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
             

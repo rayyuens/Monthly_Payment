@@ -70,9 +70,6 @@
         .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:85%; max-width:320px; max-height: 80vh; overflow-y: auto; }
         #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
 
-        .detail-row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #F2F2F7; }
-        .detail-paid { color: #aaa; text-decoration: line-through; }
-
         .custom-val-input { font-size: 11px; padding: 6px; text-align: center; }
         .toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
         .toggle-container input { width: auto; }
@@ -89,16 +86,14 @@
     </div>
 
     <div id="modalOverlay" onclick="closeAllModals()"></div>
-    
     <div id="settlementModal" class="modal">
-        <h3 style="margin-top:0; font-size:16px; text-align: center;">Final Settlement</h3>
+        <h3 style="margin-top:0; font-size:16px; text-align:center;">Final Settlement</h3>
         <div id="settlementResults" style="font-size:14px; line-height:1.6; color:#333; margin:15px 0;"></div>
         <button onclick="closeAllModals()" class="btn-add" style="margin:0; padding:8px;">Got it</button>
     </div>
-
     <div id="detailModal" class="modal">
-        <h3 id="detailUserName" style="margin-top:0; font-size:16px; text-align: center; color: var(--primary);">User Details</h3>
-        <div id="detailContent"></div>
+        <h3 id="detailUserName" style="margin-top:0; font-size:16px; text-align:center; color:var(--primary);">Details</h3>
+        <div id="detailContent" style="font-size:13px;"></div>
         <button onclick="closeAllModals()" class="btn-add" style="margin-top:15px; padding:8px;">Close</button>
     </div>
 
@@ -132,16 +127,16 @@
             <div id="customTagsList" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
             <div style="display:flex; gap:5px; margin-bottom:15px;">
                 <input type="text" id="newTagName" placeholder="New tag">
-                <button onclick="addCustomTag()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add Tag</button>
+                <button onclick="addCustomTag()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
             </div>
 
             <span class="card-title">2. Manage Templates</span>
             <div id="templateList" style="margin-bottom: 10px;"></div>
             <div style="display:flex; gap:5px; margin-bottom:5px;">
-                <input type="text" id="tempName" placeholder="e.g. Rent">
+                <input type="text" id="tempName" placeholder="Name">
                 <input type="number" id="tempAmount" placeholder="$" style="width:35%">
             </div>
-            <input type="text" id="tempNote" placeholder="Notes (Optional)" style="margin-bottom: 8px; font-size: 12px;">
+            <input type="text" id="tempNote" placeholder="Notes" style="margin-bottom: 8px; font-size: 12px;">
             <span class="label-sm">Who usually pays?</span>
             <div class="split-selector" id="tempPayerSelector"></div>
             <div class="toggle-container">
@@ -164,7 +159,7 @@
                 <input type="text" id="itemName" placeholder="Item Name">
                 <input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
             </div>
-            <input type="text" id="itemNote" placeholder="Notes (Optional)" style="margin-bottom: 8px; font-size: 12px;">
+            <input type="text" id="itemNote" placeholder="Notes" style="margin-bottom: 8px; font-size: 12px;">
             <span class="label-sm">Who Paid?</span>
             <div class="split-selector" id="payerSelector"></div>
             <div class="toggle-container">
@@ -198,12 +193,6 @@
         let allExpenses = {};
         let shoppingNotes = []; 
         let db;
-
-        // Global stats for the Detail Popup
-        let currentMonthStats = {
-            upfront: [],
-            debts: []
-        };
 
         window.fillItem = (name, targetId = 'itemName') => {
             document.getElementById(targetId).value = name;
@@ -284,10 +273,6 @@
             const isCustom = document.getElementById('customSplitToggle').checked;
             let customAmounts = isCustom ? Array.from(document.querySelectorAll('#customAmountsContainer .custom-val-input')).map(i => parseFloat(i.value) || 0) : null;
 
-            if (isCustom && Math.abs(customAmounts.reduce((a,b)=>a+b,0) - amount) > 0.01) {
-                alert("Custom sum must match total amount"); return;
-            }
-
             if (name && !isNaN(amount)) {
                 const key = getMonthKey();
                 if (!allExpenses[key]) allExpenses[key] = [];
@@ -314,8 +299,6 @@
             if(name && !isNaN(amount)) {
                 templates.push({ name, amount, note, payers, splitBetween: splits, customAmounts });
                 ['tempName','tempAmount','tempNote'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('tempCustomSplitToggle').checked = false;
-                toggleTempCustomInputs();
                 pushToCloud();
             }
         };
@@ -340,32 +323,8 @@
             if (item && !item.payers[idx]) { item.paidBy[idx] = !item.paidBy[idx]; pushToCloud(); }
         };
 
-        window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
         window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
         function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
-
-        // Detail Modal Feature
-        window.showUserDetails = (idx) => {
-            const name = roommateNames[idx];
-            document.getElementById('detailUserName').innerText = `${name}'s Details`;
-            
-            let html = `<div style="margin-bottom:15px;"><b style="font-size:11px; color:#888;">UPFRONT PAYMENTS</b>`;
-            const upfronts = currentMonthStats.upfront[idx];
-            if (upfronts.length === 0) html += `<div class="detail-row">None</div>`;
-            else upfronts.forEach(u => html += `<div class="detail-row"><span>${u.name}</span><b>$${u.amount.toFixed(2)}</b></div>`);
-
-            html += `</div><div><b style="font-size:11px; color:#888;">PERSONAL CONSUMPTION (DEBTS)</b>`;
-            const debts = currentMonthStats.debts[idx];
-            if (debts.length === 0) html += `<div class="detail-row">None</div>`;
-            else debts.forEach(d => {
-                html += `<div class="detail-row ${d.isPaid ? 'detail-paid' : ''}"><span>${d.name}</span><b>$${d.amount.toFixed(2)}</b></div>`;
-            });
-            html += `</div>`;
-
-            document.getElementById('detailContent').innerHTML = html;
-            document.getElementById('modalOverlay').style.display = 'block';
-            document.getElementById('detailModal').style.display = 'block';
-        };
 
         window.calculateSettlement = () => {
             const items = allExpenses[getMonthKey()] || [];
@@ -398,6 +357,37 @@
             document.getElementById('settlementModal').style.display = 'block';
         };
 
+        // NEW: Detailed Popup Logic
+        window.openDetails = (idx) => {
+            const key = getMonthKey();
+            const items = allExpenses[key] || [];
+            const name = roommateNames[idx];
+            
+            let html = `<b>Items ${name} Paid Upfront:</b><br>`;
+            let upfrontItems = items.filter(item => item.payers[idx]);
+            if(upfrontItems.length === 0) html += `<span style="color:gray">None</span><br>`;
+            else upfrontItems.forEach(i => {
+                const count = i.payers.filter(Boolean).length;
+                html += `• ${i.name}: $${(i.amount/count).toFixed(2)}<br>`;
+            });
+
+            html += `<br><b>Items ${name} Owes for:</b><br>`;
+            items.forEach(item => {
+                let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+                if (share > 0) {
+                    const status = item.paidBy[idx] ? '✅' : '❌';
+                    html += `<div style="display:flex; justify-content:space-between; ${item.paidBy[idx]?'color:#aaa; text-decoration:line-through':''}">
+                        <span>${status} ${item.name}</span> <span>$${share.toFixed(2)}</span>
+                    </div>`;
+                }
+            });
+
+            document.getElementById('detailUserName').innerText = name + "'s Monthly Detail";
+            document.getElementById('detailContent').innerHTML = html;
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('detailModal').style.display = 'block';
+        };
+
         window.closeAllModals = () => {
             document.getElementById('modalOverlay').style.display = 'none';
             document.getElementById('settlementModal').style.display = 'none';
@@ -413,24 +403,21 @@
             document.getElementById('notesContainer').innerHTML = shoppingNotes.map(n => `<div class="note-item"><span class="note-text">${n.text}</span><button class="delete-btn" onclick="deleteNote(${n.id})">✕</button></div>`).join('');
             document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm" style="margin:0; align-self:center;">Quick:</span>' + 
                 quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
-            document.getElementById('customTagsList').innerHTML = quickTags.map((tag, i) => `<div class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px; display:flex; align-items:center; gap:5px;"><span onclick="fillItem('${tag}', 'tempName')">${tag}</span><span style="color:red; font-weight:800;" onclick="removeTag(${i})">×</span></div>`).join('');
 
-            // Inputs
-            const generatePills = (cls) => roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}"> ${n}</label>`).join('');
-            const generateInputs = () => roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
-            document.getElementById('payerSelector').innerHTML = generatePills('payer-check');
+            // Payer Selectors
+            const genCheck = (cls) => roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}"> ${n}</label>`).join('');
+            document.getElementById('payerSelector').innerHTML = genCheck('payer-check');
             document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
-            document.getElementById('customAmountsContainer').innerHTML = generateInputs();
-            document.getElementById('tempPayerSelector').innerHTML = generatePills('temp-payer-check');
+            document.getElementById('customAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
+            document.getElementById('tempPayerSelector').innerHTML = genCheck('temp-payer-check');
             document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
-            document.getElementById('tempCustomAmountsContainer').innerHTML = generateInputs();
-            document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount})<span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
+            document.getElementById('tempCustomAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
 
             const monthItems = allExpenses[key] || [];
             document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
 
-            // Build Stats
-            currentMonthStats = { upfront: roommateNames.map(()=>[]), debts: roommateNames.map(()=>[]) };
+            // List Logic
+            let userStats = roommateNames.map(() => []);
             let userTotalOwed = roommateNames.map(() => 0);
             let userTotalPaidUpfront = roommateNames.map(() => 0);
 
@@ -439,18 +426,12 @@
             
             monthItems.forEach(item => {
                 const payersCount = item.payers.filter(Boolean).length;
-                item.payers.forEach((isPayer, idx) => { 
-                    if (isPayer) {
-                        const val = item.amount / payersCount;
-                        userTotalPaidUpfront[idx] += val;
-                        currentMonthStats.upfront[idx].push({ name: item.name, amount: val });
-                    }
-                });
+                item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
 
                 roommateNames.forEach((_, idx) => {
                     let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
                     if (share > 0) {
-                        currentMonthStats.debts[idx].push({ name: item.name, amount: share, isPaid: item.paidBy[idx] });
+                        userStats[idx].push({ name: item.name, amount: share, isPaid: item.paidBy[idx] });
                         if (!item.paidBy[idx]) userTotalOwed[idx] += share;
                     }
                 });
@@ -472,10 +453,12 @@
                 container.appendChild(div);
             });
 
+            // Summary Grid (RESTORED VIEW + POPUP TRIGGER)
             document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
-                <div class="user-summary-card" onclick="showUserDetails(${i})">
+                <div class="user-summary-card" onclick="openDetails(${i})">
                     <div class="user-name-tag">${name} ℹ️</div>
-                    <div style="font-size:9px; color:#666; margin-bottom:2px;">Paid Upfront: $${userTotalPaidUpfront[i].toFixed(2)}</div>
+                    <div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${userTotalPaidUpfront[i].toFixed(2)}</div>
+                    ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
                     <div class="grand-total-tag" style="color: ${userTotalOwed[i] <= 0.01 ? 'var(--success)' : 'var(--danger)'}">${userTotalOwed[i] <= 0.01 ? 'PAID' : 'OWE: $' + userTotalOwed[i].toFixed(2)}</div>
                 </div>`).join('');
         }

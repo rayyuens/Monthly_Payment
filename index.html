@@ -377,12 +377,11 @@ window.openDetails = (idx) => {
     const items = allExpenses[key] || [];
     const name = roommateNames[idx];
 
-    // 1. 計算墊支項目 (Paid Upfront)
-    let upfrontHtml = `<b style="color:var(--primary); font-size:14px;">💰 You Paid Upfront:</b><br>`;
+    // 1. Paid Upfront
+    let upfrontHtml = `<b style="color:var(--primary); font-size:14px;">💰 Paid Upfront (You paid for others):</b><br>`;
     let upfrontItems = items.filter(item => item.payers[idx]);
-    
     if(upfrontItems.length === 0) {
-        upfrontHtml += `<span style="color:gray; font-size:12px;">(No payments made)</span><br>`;
+        upfrontHtml += `<span style="color:gray; font-size:12px;">None</span><br>`;
     } else {
         upfrontItems.forEach(i => {
             const payersCount = i.payers.filter(Boolean).length;
@@ -390,18 +389,15 @@ window.openDetails = (idx) => {
         });
     }
 
-    // 2. 計算責任項目 (Responsible for / Share)
-    let shareHtml = `<br><b style="color:var(--text); font-size:14px;">🧾 Included in your "Share":</b><br>`;
+    // 2. Share / Responsible Items
+    let shareHtml = `<br><b style="color:var(--text); font-size:14px;">🧾 Responsible For (Your Share):</b><br>`;
     let shareCount = 0;
-
     items.forEach(item => {
         let shareAmt = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-        
         if (shareAmt > 0) {
             shareCount++;
             const status = item.paidBy[idx] ? '✅' : '❌';
             const paidByNames = roommateNames.filter((_, pIdx) => item.payers[pIdx]).join(' & ');
-            
             shareHtml += `
             <div style="display:flex; flex-direction:column; border-bottom:1px solid #F2F2F7; padding:8px 0;">
                 <div style="display:flex; justify-content:space-between; ${item.paidBy[idx] ? 'color:#aaa; text-decoration:line-through' : ''}">
@@ -409,44 +405,15 @@ window.openDetails = (idx) => {
                     <span style="font-weight:600;">$${shareAmt.toFixed(2)}</span>
                 </div>
                 <div style="font-size:10px; color:#8E8E93; margin-top:2px;">
-                    Payer: <span style="color:#555;">${paidByNames || 'System'}</span>
+                    Paid by: <span style="color:#555;">${paidByNames || 'System'}</span>
                 </div>
             </div>`;
         }
     });
+    if(shareCount === 0) shareHtml += `<span style="color:gray; font-size:12px;">None</span>`;
 
-    if(shareCount === 0) shareHtml += `<span style="color:gray; font-size:12px;">(No responsibilities)</span>`;
-
-    // 渲染到 Modal
     document.getElementById('detailUserName').innerText = name + "'s Breakdown";
     document.getElementById('detailContent').innerHTML = upfrontHtml + shareHtml;
-    document.getElementById('modalOverlay').style.display = 'block';
-    document.getElementById('detailModal').style.display = 'block';
-};
-
-    html += `<br><b style="color:var(--danger)">Items ${name} Owes for:</b><br>`;
-    items.forEach(item => {
-        let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-        
-        if (share > 0) {
-            const status = item.paidBy[idx] ? '✅' : '❌';
-            // 搵出邊個係呢單嘢嘅付款人
-            const paidByNames = roommateNames.filter((_, pIdx) => item.payers[pIdx]).join(' & ');
-            
-            html += `<div style="display:flex; flex-direction:column; border-bottom:1px solid #eee; padding:5px 0;">
-                <div style="display:flex; justify-content:space-between; ${item.paidBy[idx] ? 'color:#aaa; text-decoration:line-through' : ''}">
-                    <span>${status} ${item.name}</span> 
-                    <span>$${share.toFixed(2)}</span>
-                </div>
-                <div style="font-size:9px; color:#8E8E93; margin-left:18px;">
-                    Paid by: ${paidByNames || 'Unknown'}
-                </div>
-            </div>`;
-        }
-    });
-
-    document.getElementById('detailUserName').innerText = name + "'s Monthly Detail";
-    document.getElementById('detailContent').innerHTML = html;
     document.getElementById('modalOverlay').style.display = 'block';
     document.getElementById('detailModal').style.display = 'block';
 };

@@ -125,6 +125,14 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 <button class="btn-template-toggle" onclick="toggleTemplateView()">⚙️ Settings & Templates</button>
 
 <div id="templateSection" class="card" style="display:none; border: 1px dashed #007AFF;">
+<span class="card-title">0. Manage Users</span>
+<div id="userManagementList" style="margin-bottom: 10px;"></div>
+<div style="display:flex; gap:5px; margin-bottom:15px;">
+<input type="text" id="newUserName" placeholder="New User Name">
+<button onclick="addNewUser()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
+</div>
+<hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+
 <span class="card-title">1. Custom Quick Tags</span>
 <div id="customTagsList" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
 <div style="display:flex; gap:5px; margin-bottom:15px;">
@@ -242,6 +250,35 @@ document.getElementById('cloudStatus').innerText = "● Cloud Synced";
 window.pushToCloud = () => db.ref('roomiePay_v11').set({ 
 names: roommateNames, templates, quickTags, expenses: allExpenses, notes: shoppingNotes 
 });
+
+// --- NEW USER MANAGEMENT FUNCTIONS ---
+window.addNewUser = () => {
+    const val = document.getElementById('newUserName').value.trim();
+    if(val) {
+        if(!roommateNames.includes(val)) {
+            roommateNames.push(val);
+            document.getElementById('newUserName').value = '';
+            pushToCloud();
+        } else {
+            alert("User already exists!");
+        }
+    }
+};
+
+window.updateUser = (idx, newName) => {
+    if(newName && newName.trim() !== "") {
+        roommateNames[idx] = newName.trim();
+        pushToCloud();
+    }
+};
+
+window.removeUser = (idx) => {
+    if(confirm("Warning: Deleting a user shifts the index order. This might mess up historical data (who paid what) for past months. Are you sure?")) {
+        roommateNames.splice(idx, 1);
+        pushToCloud();
+    }
+};
+// -------------------------------------
 
 window.toggleCustomInputs = () => {
 document.getElementById('customAmountsContainer').style.display = document.getElementById('customSplitToggle').checked ? 'flex' : 'none';
@@ -412,6 +449,15 @@ document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm
 quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
 document.getElementById('customTagsList').innerHTML = quickTags.map((tag, i) => `<div class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px; display:flex; align-items:center; gap:5px;"><span onclick="fillItem('${tag}', 'tempName')">${tag}</span><span style="color:red; font-weight:800;" onclick="removeTag(${i})">×</span></div>`).join('');
 
+// --- RENDER USER MANAGEMENT LIST ---
+document.getElementById('userManagementList').innerHTML = roommateNames.map((name, i) => `
+    <div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;">
+        <input type="text" value="${name}" onchange="updateUser(${i}, this.value)" style="padding:4px; font-size:12px;">
+        <button class="delete-btn" style="width:25px; height:25px;" onclick="removeUser(${i})">✕</button>
+    </div>
+`).join('');
+// -----------------------------------
+
 const genCheck = (cls) => roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}"> ${n}</label>`).join('');
 document.getElementById('payerSelector').innerHTML = genCheck('payer-check');
 document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
@@ -433,7 +479,7 @@ container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;fon
 
 monthItems.forEach(item => {
 const payersCount = item.payers.filter(Boolean).length;
-item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
+item.payers.forEach((isPayer, idx) => { if (isPayer && userTotalPaidUpfront[idx] !== undefined) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
 
 roommateNames.forEach((_, idx) => {
 let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
@@ -463,7 +509,7 @@ container.appendChild(div);
 document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
 <div class="user-summary-card" onclick="openDetails(${i})">
 <div class="user-name-tag">${name} ℹ️</div>
-<div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${userTotalPaidUpfront[i].toFixed(2)}</div>
+<div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${userTotalPaidUpfront[i] ? userTotalPaidUpfront[i].toFixed(2) : '0.00'}</div>
 ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
 <div class="grand-total-tag" style="color: ${userTotalOwed[i] <= 0.01 ? 'var(--success)' : 'var(--danger)'}">${userTotalOwed[i] <= 0.01 ? 'PAID' : 'OWE: $' + userTotalOwed[i].toFixed(2)}</div>
 </div>`).join('');

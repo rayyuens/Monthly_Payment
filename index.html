@@ -363,9 +363,14 @@ document.getElementById('templateSection').style.display = 'none';
 
 window.clearAllExpenses = () => { if (confirm("Clear all?")) { allExpenses[getMonthKey()] = []; pushToCloud(); } };
 window.deleteItem = (id) => { allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id); pushToCloud(); };
+
+// This is the core function for the checkbox
 window.togglePaid = (id, idx) => {
-const item = allExpenses[getMonthKey()].find(e => e.id === id);
-if (item) { item.paidBy[idx] = !item.paidBy[idx]; pushToCloud(); }
+    const item = allExpenses[getMonthKey()].find(e => e.id === id);
+    if (item) { 
+        item.paidBy[idx] = !item.paidBy[idx]; 
+        pushToCloud(); 
+    }
 };
 
 window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
@@ -377,7 +382,6 @@ window.openDetails = (idx) => {
     const items = allExpenses[key] || [];
     const name = roommateNames[idx];
 
-    // 1. Paid Upfront
     let upfrontHtml = `<b style="color:var(--primary); font-size:14px;">💰 Paid Upfront (You paid for others):</b><br>`;
     let upfrontItems = items.filter(item => item.payers[idx]);
     if(upfrontItems.length === 0) {
@@ -389,7 +393,6 @@ window.openDetails = (idx) => {
         });
     }
 
-    // 2. Share / Responsible Items
     let shareHtml = `<br><b style="color:var(--text); font-size:14px;">🧾 Responsible For (Your Share):</b><br>`;
     let shareCount = 0;
     items.forEach(item => {
@@ -419,34 +422,42 @@ window.openDetails = (idx) => {
 };
 
 window.calculateSettlement = () => {
-const items = allExpenses[getMonthKey()] || [];
-let balances = roommateNames.map(() => 0);
-items.forEach(item => {
-const payersCount = item.payers.filter(Boolean).length;
-if (payersCount === 0) return;
-roommateNames.forEach((_, i) => {
-let share = item.customAmounts ? item.customAmounts[i] : (item.splitBetween[i] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-if (share > 0 && !item.paidBy[i]) {
-balances[i] -= share;
-item.payers.forEach((isPayer, pIdx) => { if (isPayer) balances[pIdx] += (share / payersCount); });
-}
-});
-});
-let debtors = [], creditors = [], results = [];
-balances.forEach((bal, i) => {
-if (bal < -0.01) debtors.push({ name: roommateNames[i], amt: -bal });
-else if (bal > 0.01) creditors.push({ name: roommateNames[i], amt: bal });
-});
-let d = 0, c = 0;
-while (d < debtors.length && c < creditors.length) {
-let settleAmt = Math.min(debtors[d].amt, creditors[c].amt);
-results.push(`<b>${debtors[d].name}</b> → $${settleAmt.toFixed(2)} → <b>${creditors[c].name}</b>`);
-debtors[d].amt -= settleAmt; creditors[c].amt -= settleAmt;
-if (debtors[d].amt < 0.01) d++; if (creditors[c].amt < 0.01) c++;
-}
-document.getElementById('settlementResults').innerHTML = results.length > 0 ? results.join('<br>') : "All items settled! 🎉";
-document.getElementById('modalOverlay').style.display = 'block';
-document.getElementById('settlementModal').style.display = 'block';
+    const items = allExpenses[getMonthKey()] || [];
+    let balances = roommateNames.map(() => 0);
+    
+    items.forEach(item => {
+        const payersCount = item.payers.filter(Boolean).length;
+        if (payersCount === 0) return;
+        
+        roommateNames.forEach((_, i) => {
+            let share = item.customAmounts ? item.customAmounts[i] : (item.splitBetween[i] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+            
+            // LOGIC: If box is NOT checked, apply it to the balance
+            if (share > 0 && !item.paidBy[i]) {
+                balances[i] -= share;
+                item.payers.forEach((isPayer, pIdx) => { 
+                    if (isPayer) balances[pIdx] += (share / payersCount); 
+                });
+            }
+        });
+    });
+
+    let debtors = [], creditors = [], results = [];
+    balances.forEach((bal, i) => {
+        if (bal < -0.01) debtors.push({ name: roommateNames[i], amt: -bal });
+        else if (bal > 0.01) creditors.push({ name: roommateNames[i], amt: bal });
+    });
+
+    let d = 0, c = 0;
+    while (d < debtors.length && c < creditors.length) {
+        let settleAmt = Math.min(debtors[d].amt, creditors[c].amt);
+        results.push(`<b>${debtors[d].name}</b> → $${settleAmt.toFixed(2)} → <b>${creditors[c].name}</b>`);
+        debtors[d].amt -= settleAmt; creditors[c].amt -= settleAmt;
+        if (debtors[d].amt < 0.01) d++; if (creditors[c].amt < 0.01) c++;
+    }
+    document.getElementById('settlementResults').innerHTML = results.length > 0 ? results.join('<br>') : "All items settled! 🎉";
+    document.getElementById('modalOverlay').style.display = 'block';
+    document.getElementById('settlementModal').style.display = 'block';
 };
 
 window.closeAllModals = () => {
@@ -486,52 +497,60 @@ document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce
 
 let userTotalShare = roommateNames.map(() => 0);
 let userTotalPaidUpfront = roommateNames.map(() => 0);
+let userFinalBalance = roommateNames.map(() => 0);
 
 const container = document.getElementById('listContainer');
 container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
 
 monthItems.forEach(item => {
-const payersCount = item.payers.filter(Boolean).length;
-item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
+    const payersCount = item.payers.filter(Boolean).length;
+    
+    // Calculate Raw Totals for the stats
+    item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
+    roommateNames.forEach((_, idx) => {
+        let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+        userTotalShare[idx] += share;
+        
+        // Calculate the LIVE balance (only counting unpaid checkboxes)
+        if (share > 0 && !item.paidBy[idx]) {
+            userFinalBalance[idx] -= share;
+            item.payers.forEach((isPayer, pIdx) => { if (isPayer) userFinalBalance[pIdx] += (share / payersCount); });
+        }
+    });
 
-roommateNames.forEach((_, idx) => {
-let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-userTotalShare[idx] += share;
-});
-
-const div = document.createElement('div');
-div.className = 'item-row';
-div.innerHTML = `
-   <div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
-   ${item.note ? `<div class="item-desc">${item.note}</div>` : ''}
-   <div style="display:flex; gap:5px; margin-top:8px;">
-   ${roommateNames.map((name, index) => {
-       const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index];
-       if (!hasShare) return `<div style="flex:1"></div>`;
-       return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;">
-       <input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
-       </label>`;
-   }).join('')}
-   </div>`;
-container.appendChild(div);
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.innerHTML = `
+       <div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
+       ${item.note ? `<div class="item-desc">${item.note}</div>` : ''}
+       <div style="display:flex; gap:5px; margin-top:8px;">
+       ${roommateNames.map((name, index) => {
+           const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index];
+           if (!hasShare) return `<div style="flex:1"></div>`;
+           return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;">
+           <input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}
+           </label>`;
+       }).join('')}
+       </div>`;
+    container.appendChild(div);
 });
 
 document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
-const balance = userTotalPaidUpfront[i] - userTotalShare[i];
-const balanceText = balance >= 0 ? `GET: $${balance.toFixed(2)}` : `OWE: $${Math.abs(balance).toFixed(2)}`;
-const balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+    const balance = userFinalBalance[i];
+    const balanceText = balance >= 0 ? `GET: $${balance.toFixed(2)}` : `OWE: $${Math.abs(balance).toFixed(2)}`;
+    const balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
 
-return `
-   <div class="user-summary-card" onclick="openDetails(${i})">
-       <div class="user-name-tag">${name} ℹ️</div>
-       <div class="stat-box">
-           <div class="stat-row"><span>Paid:</span> <span>$${userTotalPaidUpfront[i].toFixed(2)}</span></div>
-           <div class="stat-row"><span>Share:</span> <span>$${userTotalShare[i].toFixed(2)}</span></div>
-       </div>
-       <div class="grand-total-tag" style="color: ${balanceColor}">
-           ${balanceText}
-       </div>
-   </div>`;
+    return `
+       <div class="user-summary-card" onclick="openDetails(${i})">
+           <div class="user-name-tag">${name} ℹ️</div>
+           <div class="stat-box">
+               <div class="stat-row"><span>Paid:</span> <span>$${userTotalPaidUpfront[i].toFixed(2)}</span></div>
+               <div class="stat-row"><span>Share:</span> <span>$${userTotalShare[i].toFixed(2)}</span></div>
+           </div>
+           <div class="grand-total-tag" style="color: ${balanceColor}">
+               ${balanceText}
+           </div>
+       </div>`;
 }).join('');
 }
 </script>

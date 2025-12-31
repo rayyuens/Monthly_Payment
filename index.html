@@ -69,7 +69,6 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:85%; max-width:320px; max-height: 80vh; overflow-y: auto; }
 #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
 .detail-row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #F2F2F7; }
-.detail-paid { color: #aaa; text-decoration: line-through; }
 .custom-val-input { font-size: 11px; padding: 6px; text-align: center; }
 .toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
 .toggle-container input { width: auto; }
@@ -195,8 +194,10 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 </div>
 
 <script>
-// 🔥🔥🔥 PLEASE REPLACE WITH YOUR ACTUAL SUPABASE URL 🔥🔥🔥
-const SUPABASE_FUNCTION_URL = "INSERT_YOUR_SUPABASE_URL_HERE"; 
+// --- CONFIG & GLOBAL VARIABLES ---
+const SB_URL = 'https://tywvhvarouhzapqihcit.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5d3ZodmFyb3VoemFwcWloY2l0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5ODI2OTMsImV4cCI6MjA4MjU1ODY5M30.3LLxsdfXHZ3EkpNpwI5AzKHCSx1499Ha7tXzS6mkTvI';
+const FUNCTION_NAME = 'gemini-explain'; // 請確保這是你 Supabase 中的 Function 名稱
 
 const APP_PASSWORD = "  "; 
 let viewDate = new Date(); viewDate.setDate(1);
@@ -207,17 +208,13 @@ let allExpenses = {};
 let shoppingNotes = []; 
 let db;
 
-window.fillItem = (name, targetId = 'itemName') => {
-    document.getElementById(targetId).value = name;
-    if(targetId === 'itemName') document.getElementById('itemAmount').focus();
-};
-
-function checkPassword() {
+// --- AUTH FUNCTIONS ---
+window.checkPassword = function() {
     if (document.getElementById('passInput').value === APP_PASSWORD) {
         sessionStorage.setItem('roomiePay_auth', 'true');
         unlockApp();
     } else { alert("Incorrect"); }
-}
+};
 
 function unlockApp() {
     document.getElementById('loginOverlay').style.display = 'none';
@@ -227,6 +224,7 @@ function unlockApp() {
 
 window.onload = () => { if (sessionStorage.getItem('roomiePay_auth') === 'true') unlockApp(); };
 
+// --- FIREBASE CORE ---
 function initApp() {
     const config = {
         apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
@@ -254,197 +252,25 @@ window.pushToCloud = () => db.ref('roomiePay_v11').set({
     names: roommateNames, templates, quickTags, expenses: allExpenses, notes: shoppingNotes 
 });
 
-// --- UPDATED USER MANAGEMENT (Soft Delete Logic) ---
-window.addNewUser = () => {
-    const val = document.getElementById('newUserName').value.trim();
-    if(val) {
-        if(!roommateNames.includes(val)) {
-            roommateNames.push(val);
-            document.getElementById('newUserName').value = '';
-            pushToCloud();
-        } else { alert("User already exists!"); }
-    }
+// --- UI UTILS ---
+window.fillItem = (name, targetId = 'itemName') => {
+    document.getElementById(targetId).value = name;
+    if(targetId === 'itemName') document.getElementById('itemAmount').focus();
 };
 
-window.updateUser = (idx, newName) => {
-    if(newName && newName.trim() !== "") {
-        roommateNames[idx] = newName.trim();
-        pushToCloud();
-    }
+window.toggleTemplateView = () => { 
+    const s = document.getElementById('templateSection'); 
+    s.style.display = (s.style.display==='block'?'none':'block'); 
 };
 
-window.removeUser = (idx) => {
-    if(confirm("Confirm to remove? User will be hidden from new bills, but history remains safely.")) {
-        roommateNames[idx] = "[Deleted] " + roommateNames[idx];
-        pushToCloud();
-    }
-};
-// ---------------------------------------------------
-
-window.toggleCustomInputs = () => {
-    document.getElementById('customAmountsContainer').style.display = document.getElementById('customSplitToggle').checked ? 'flex' : 'none';
-};
-
-window.toggleTempCustomInputs = () => {
-    document.getElementById('tempCustomAmountsContainer').style.display = document.getElementById('tempCustomSplitToggle').checked ? 'flex' : 'none';
-};
-
-window.addNote = () => {
-    const input = document.getElementById('noteInput');
-    if(input.value.trim()) {
-        shoppingNotes.push({ id: Date.now(), text: input.value.trim() });
-        input.value = ''; pushToCloud();
-    }
-};
-
-window.deleteNote = (id) => { shoppingNotes = shoppingNotes.filter(n => n.id !== id); pushToCloud(); };
-window.addCustomTag = () => {
-    const val = document.getElementById('newTagName').value.trim();
-    if(val) { quickTags.push(val); document.getElementById('newTagName').value = ''; pushToCloud(); }
-};
-window.removeTag = (idx) => { quickTags.splice(idx, 1); pushToCloud(); };
-
-window.addItem = () => {
-    const name = document.getElementById('itemName').value;
-    const amount = parseFloat(document.getElementById('itemAmount').value);
-    const note = document.getElementById('itemNote').value.trim();
-    
-    const visiblePayers = Array.from(document.querySelectorAll('.payer-check'));
-    const visibleSplits = Array.from(document.querySelectorAll('.split-check'));
-    
-    let payers = new Array(roommateNames.length).fill(false);
-    let participants = new Array(roommateNames.length).fill(false);
-    
-    visiblePayers.forEach(el => {
-        if(el.checked) payers[parseInt(el.dataset.idx)] = true;
-    });
-    visibleSplits.forEach(el => {
-        if(el.checked) participants[parseInt(el.dataset.idx)] = true;
-    });
-
-    const isCustom = document.getElementById('customSplitToggle').checked;
-    let customAmounts = null;
-    
-    if(isCustom) {
-        customAmounts = new Array(roommateNames.length).fill(0);
-        const visibleInputs = Array.from(document.querySelectorAll('#customAmountsContainer .custom-val-input'));
-        visibleInputs.forEach(el => {
-            let val = parseFloat(el.value) || 0;
-            customAmounts[parseInt(el.dataset.idx)] = val;
-        });
-        
-        if (Math.abs(customAmounts.reduce((a,b)=>a+b,0) - amount) > 0.01) {
-            alert("Custom sum must match total amount"); return;
-        }
-    }
-
-    if (name && !isNaN(amount)) {
-        const key = getMonthKey();
-        if (!allExpenses[key]) allExpenses[key] = [];
-        allExpenses[key].push({ 
-            id: Date.now(), name, amount, note, payers, splitBetween: participants, 
-            paidBy: participants.map((p, i) => p && payers[i]), customAmounts 
-        });
-        ['itemName','itemAmount','itemNote'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('customSplitToggle').checked = false;
-        toggleCustomInputs();
-        pushToCloud();
-    }
-};
-
-window.addTemplateItem = () => {
-    const name = document.getElementById('tempName').value;
-    const amount = parseFloat(document.getElementById('tempAmount').value);
-    const note = document.getElementById('tempNote').value.trim();
-    
-    let payers = new Array(roommateNames.length).fill(false);
-    let splits = new Array(roommateNames.length).fill(false);
-    
-    Array.from(document.querySelectorAll('.temp-payer-check')).forEach(el => {
-        if(el.checked) payers[parseInt(el.dataset.idx)] = true;
-    });
-    Array.from(document.querySelectorAll('.temp-split-check')).forEach(el => {
-        if(el.checked) splits[parseInt(el.dataset.idx)] = true;
-    });
-
-    const isCustom = document.getElementById('tempCustomSplitToggle').checked;
-    let customAmounts = null;
-    if(isCustom) {
-        customAmounts = new Array(roommateNames.length).fill(0);
-        Array.from(document.querySelectorAll('#tempCustomAmountsContainer .custom-val-input')).forEach(el => {
-            customAmounts[parseInt(el.dataset.idx)] = parseFloat(el.value) || 0;
-        });
-    }
-
-    if(name && !isNaN(amount)) {
-        templates.push({ name, amount, note, payers, splitBetween: splits, customAmounts });
-        ['tempName','tempAmount','tempNote'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('tempCustomSplitToggle').checked = false;
-        toggleTempCustomInputs();
-        pushToCloud();
-    }
-};
-
-window.applyTemplates = () => {
-    const key = getMonthKey();
-    if (!allExpenses[key]) allExpenses[key] = [];
-    templates.forEach(t => {
-        allExpenses[key].push({ 
-            ...t, id: Date.now() + Math.random(), 
-            paidBy: t.splitBetween.map((p, i) => p && t.payers[i]) 
-        });
-    });
-    pushToCloud();
-    document.getElementById('templateSection').style.display = 'none';
-};
-
-window.clearAllExpenses = () => { if (confirm("Clear all?")) { allExpenses[getMonthKey()] = []; pushToCloud(); } };
-window.deleteItem = (id) => { allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id); pushToCloud(); };
-window.togglePaid = (id, idx) => {
-    const item = allExpenses[getMonthKey()].find(e => e.id === id);
-    if (item && !item.payers[idx]) { item.paidBy[idx] = !item.paidBy[idx]; pushToCloud(); }
-};
-
-window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
 window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
 function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
-window.openDetails = (idx) => {
-    const key = getMonthKey();
-    const items = allExpenses[key] || [];
-    const name = roommateNames[idx];
-
-    let html = `<b>Items ${name} Paid Upfront:</b><br>`;
-    let upfrontItems = items.filter(item => item.payers[idx]);
-    if(upfrontItems.length === 0) html += `<span style="color:gray">None</span><br>`;
-    else upfrontItems.forEach(i => {
-        const count = i.payers.filter(Boolean).length;
-        html += `• ${i.name}: $${(i.amount/count).toFixed(2)}<br>`;
-    });
-
-    html += `<br><b>Items ${name} Owes for:</b><br>`;
-    items.forEach(item => {
-        let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-        if (share > 0) {
-            const status = item.paidBy[idx] ? '✅' : '❌';
-            html += `<div style="display:flex; justify-content:space-between; ${item.paidBy[idx]?'color:#aaa; text-decoration:line-through':''}">
-            <span>${status} ${item.name}</span> <span>$${share.toFixed(2)}</span>
-            </div>`;
-        }
-    });
-
-    document.getElementById('detailUserName').innerText = name + "'s Monthly Detail";
-    document.getElementById('detailContent').innerHTML = html;
-    document.getElementById('modalOverlay').style.display = 'block';
-    document.getElementById('detailModal').style.display = 'block';
-};
-
-// --- MODIFIED SETTLEMENT WITH AI EXPLAIN ---
+// --- SETTLEMENT & AI CORE ---
 window.calculateSettlement = () => {
     const items = allExpenses[getMonthKey()] || [];
     let balances = roommateNames.map(() => 0);
     
-    // 1. Calculate Balances
     items.forEach(item => {
         const payersCount = item.payers.filter(Boolean).length;
         if (payersCount === 0) return;
@@ -457,225 +283,156 @@ window.calculateSettlement = () => {
         });
     });
     
-    // 2. Prepare Data for AI (Raw Context)
     let rawStatus = [];
     let debtors = [], creditors = [], results = [];
     
     balances.forEach((bal, i) => {
         if(Math.abs(bal) < 0.01 && roommateNames[i].startsWith('[Deleted]')) return;
-        
-        // Save description for AI
-        if (Math.abs(bal) > 0.01) {
-            let n = roommateNames[i].replace('[Deleted]', '🚫');
-            rawStatus.push(`${n} ${bal > 0 ? 'claims' : 'owes'} $${Math.abs(bal).toFixed(2)}`);
-        }
-
+        let n = roommateNames[i].replace('[Deleted]', '🚫');
+        if (Math.abs(bal) > 0.01) rawStatus.push(`${n} ${bal > 0 ? 'claims' : 'owes'} $${Math.abs(bal).toFixed(2)}`);
         if (bal < -0.01) debtors.push({ name: roommateNames[i], amt: -bal });
         else if (bal > 0.01) creditors.push({ name: roommateNames[i], amt: bal });
     });
     
-    // 3. Simplify Debt
     let d = 0, c = 0;
     while (d < debtors.length && c < creditors.length) {
         let settleAmt = Math.min(debtors[d].amt, creditors[c].amt);
-        let dName = debtors[d].name.replace('[Deleted]', '🚫');
-        let cName = creditors[c].name.replace('[Deleted]', '🚫');
-        
-        results.push(`<b>${dName}</b> → $${settleAmt.toFixed(2)} → <b>${cName}</b>`);
-        
+        results.push(`<b>${debtors[d].name.replace('[Deleted]','🚫')}</b> → $${settleAmt.toFixed(2)} → <b>${creditors[c].name.replace('[Deleted]','🚫')}</b>`);
         debtors[d].amt -= settleAmt; creditors[c].amt -= settleAmt;
         if (debtors[d].amt < 0.01) d++; if (creditors[c].amt < 0.01) c++;
     }
     
-    // 4. Render Results + AI Button
-    const resultHtml = results.length > 0 ? results.join('<br>') : "All items settled! 🎉";
-    const promptForAI = `Scenario: Net balances are [${rawStatus.join(', ')}]. The calculated settlement path is: [${results.map(r => r.replace(/<[^>]*>/g, '')).join('; ')}]. Explain in Cantonese logic: 1. Who actually paid upfront vs who consumed. 2. Why this simplified path works.`;
+    const promptForAI = `Net Balances: [${rawStatus.join(', ')}]. Path: [${results.map(r => r.replace(/<[^>]*>/g, '')).join('; ')}]. Use Cantonese to explain who paid what and why this path works.`;
 
     document.getElementById('settlementResults').innerHTML = `
-        <div style="margin-bottom:15px;">${resultHtml}</div>
+        <div style="margin-bottom:15px;">${results.length > 0 ? results.join('<br>') : "All settled! 🎉"}</div>
         <hr style="border:0; border-top:1px solid #eee;">
         <div id="aiResponseBox" style="font-size:12px; color:#555; background:#f9f9f9; padding:10px; border-radius:8px; margin-bottom:10px; display:none;"></div>
-        <button id="btnAskAI" onclick='askAI(\`${promptForAI.replace(/'/g, "\\'")}\`)' class="btn-add" style="background:#8E8E93; margin-bottom:5px;">🤖 AI Explain (廣東話)</button>
+        <button id="btnAskAI" onclick="askAI('${promptForAI.replace(/'/g, "\\'")}')" class="btn-add" style="background:#8E8E93; margin-bottom:5px;">🤖 AI Explain</button>
     `;
-
     document.getElementById('modalOverlay').style.display = 'block';
     document.getElementById('settlementModal').style.display = 'block';
 };
 
-// --- 修改後的 AI 呼叫部分 ---
-window.askAI = async (promptText) => {
+// 重點：呢個 Function 加咗 async
+window.askAI = async function(promptText) {
     const btn = document.getElementById('btnAskAI');
     const box = document.getElementById('aiResponseBox');
     
-    // 你提供嘅 Supabase 設定
-    const SB_URL = 'https://tywvhvarouhzapqihcit.supabase.co';
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5d3ZodmFyb3VoemFwcWloY2l0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5ODI2OTMsImV4cCI6MjA4MjU1ODY5M30.3LLxsdfXHZ3EkpNpwI5AzKHCSx1499Ha7tXzS6mkTvI';
-    
-    // 拼湊出 Edge Function 嘅完整路徑 (假設你個 function 叫 'gemini-explain')
-    // ⚠️ 請確保 'gemini-explain' 係你真正的 Function 名稱
-    const FUNCTION_NAME = 'gemini-explain'; 
-    const FULL_URL = `${SB_URL}/functions/v1/${FUNCTION_NAME}`;
-
     btn.disabled = true;
-    btn.innerText = "Thinking... (等陣)";
+    btn.innerText = "Thinking...";
     box.style.display = 'block';
     box.innerHTML = "<i>AI 正在分析賬單邏輯...</i>";
 
     try {
-        const response = await fetch(FULL_URL, {
+        const response = await fetch(`${SB_URL}/functions/v1/${FUNCTION_NAME}`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SB_KEY}`, // 加入 Auth Key
-                'apikey': SB_KEY                    // Supabase 必備
+                'Authorization': `Bearer ${SB_KEY}`,
+                'apikey': SB_KEY
             },
             body: JSON.stringify({ text: promptText })
         });
 
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Network error");
-        }
-        
+        if (!response.ok) throw new Error("Connection failed");
         const data = await response.json();
-        
-        // 簡單 Markdown 轉 HTML (將 ** 變 <b>)
-        let formattedText = data.explanation.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+        let formattedText = (data.explanation || "").replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
         box.innerHTML = `<strong style="color:var(--primary)">🤖 AI Analysis:</strong><br><br>${formattedText}`;
         btn.style.display = 'none';
-
     } catch (error) {
-        console.error("AI Error:", error);
         box.innerHTML = `<span style="color:red">Error: ${error.message}</span>`;
-        btn.innerText = "Retry";
         btn.disabled = false;
+        btn.innerText = "Retry";
     }
 };
 
-    btn.disabled = true;
-    btn.innerText = "Thinking... (等陣)";
-    box.style.display = 'block';
-    box.innerHTML = "<i>AI 正在分析賬單邏輯...</i>";
+// --- DATA MANAGEMENT ---
+window.addNewUser = () => {
+    const val = document.getElementById('newUserName').value.trim();
+    if(val && !roommateNames.includes(val)) {
+        roommateNames.push(val);
+        document.getElementById('newUserName').value = '';
+        pushToCloud();
+    }
+};
 
-    try {
-        const response = await fetch(SUPABASE_FUNCTION_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: promptText })
+window.removeUser = (idx) => {
+    if(confirm("Hide user?")) {
+        roommateNames[idx] = "[Deleted] " + roommateNames[idx];
+        pushToCloud();
+    }
+};
+
+window.addItem = () => {
+    const name = document.getElementById('itemName').value;
+    const amount = parseFloat(document.getElementById('itemAmount').value);
+    const note = document.getElementById('itemNote').value.trim();
+    const visiblePayers = Array.from(document.querySelectorAll('.payer-check'));
+    const visibleSplits = Array.from(document.querySelectorAll('.split-check'));
+    
+    let payers = new Array(roommateNames.length).fill(false);
+    let participants = new Array(roommateNames.length).fill(false);
+    visiblePayers.forEach(el => { if(el.checked) payers[parseInt(el.dataset.idx)] = true; });
+    visibleSplits.forEach(el => { if(el.checked) participants[parseInt(el.dataset.idx)] = true; });
+
+    if (name && !isNaN(amount)) {
+        const key = getMonthKey();
+        if (!allExpenses[key]) allExpenses[key] = [];
+        allExpenses[key].push({ 
+            id: Date.now(), name, amount, note, payers, splitBetween: participants, 
+            paidBy: participants.map((p, i) => p && payers[i]), customAmounts: null 
         });
-
-        if (!response.ok) throw new Error("Network error");
-        const data = await response.json();
-        
-        // Basic Formatting
-        let formattedText = data.explanation.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-        box.innerHTML = `<strong style="color:var(--primary)">🤖 AI Analysis:</strong><br><br>${formattedText}`;
-        btn.style.display = 'none';
-
-    } catch (error) {
-        box.innerHTML = `<span style="color:red">Error: ${error.message}</span>`;
-        btn.innerText = "Retry";
-        btn.disabled = false;
+        pushToCloud();
+        ['itemName','itemAmount','itemNote'].forEach(id => document.getElementById(id).value = '');
     }
 };
+
+window.deleteItem = (id) => { allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id); pushToCloud(); };
+window.addNote = () => {
+    const input = document.getElementById('noteInput');
+    if(input.value.trim()) {
+        shoppingNotes.push({ id: Date.now(), text: input.value.trim() });
+        input.value = ''; pushToCloud();
+    }
+};
+window.deleteNote = (id) => { shoppingNotes = shoppingNotes.filter(n => n.id !== id); pushToCloud(); };
 
 window.closeAllModals = () => {
-    document.getElementById('modalOverlay').style.display = 'none';
-    document.getElementById('settlementModal').style.display = 'none';
-    document.getElementById('detailModal').style.display = 'none';
+    document.querySelectorAll('.modal, #modalOverlay').forEach(el => el.style.display = 'none');
 };
 
+// --- RENDER ENGINE ---
 function render() {
     const key = getMonthKey();
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
+    // Notes & Tags
     document.getElementById('notesContainer').innerHTML = shoppingNotes.map(n => `<div class="note-item"><span class="note-text">${n.text}</span><button class="delete-btn" onclick="deleteNote(${n.id})">✕</button></div>`).join('');
-    document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm" style="margin:0; align-self:center;">Quick:</span>' + 
-    quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
-    document.getElementById('customTagsList').innerHTML = quickTags.map((tag, i) => `<div class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px; display:flex; align-items:center; gap:5px;"><span onclick="fillItem('${tag}', 'tempName')">${tag}</span><span style="color:red; font-weight:800;" onclick="removeTag(${i})">×</span></div>`).join('');
+    document.getElementById('quickTagsContainer').innerHTML = quickTags.map(tag => `<button class="btn-template-toggle" style="margin:2px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
 
-    // --- RENDER USER MANAGEMENT LIST (Show deleted items but disable edit) ---
-    document.getElementById('userManagementList').innerHTML = roommateNames.map((name, i) => {
-        const isDel = name.startsWith('[Deleted]');
-        return `
-        <div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;">
-            <input type="text" value="${name}" onchange="updateUser(${i}, this.value)" style="padding:4px; font-size:12px; ${isDel?'color:red; text-decoration:line-through;':''}" ${isDel?'disabled':''}>
-            ${!isDel ? `<button class="delete-btn" style="width:25px; height:25px;" onclick="removeUser(${i})">✕</button>` : ''}
-        </div>`;
-    }).join('');
-
-    const genCheck = (cls) => roommateNames.map((n, i) => n.startsWith('[Deleted]') ? '' : `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}" data-idx="${i}"> ${n}</label>`).join('');
-    const genSplit = (cls) => roommateNames.map((n, i) => n.startsWith('[Deleted]') ? '' : `<label class="split-pill"><input type="checkbox" class="${cls}" checked data-idx="${i}"> ${n}</label>`).join('');
-    const genInput = () => roommateNames.map((n, i) => n.startsWith('[Deleted]') ? '' : `<input type="number" class="custom-val-input" placeholder="${n} $" data-idx="${i}">`).join('');
-
+    // Selectors
+    const genCheck = (cls, checked=false) => roommateNames.map((n, i) => n.startsWith('[Deleted]') ? '' : `<label class="split-pill"><input type="checkbox" class="${cls}" ${checked?'checked':''} data-idx="${i}"> ${n}</label>`).join('');
     document.getElementById('payerSelector').innerHTML = genCheck('payer-check');
-    document.getElementById('splitSelector').innerHTML = genSplit('split-check');
-    document.getElementById('customAmountsContainer').innerHTML = genInput();
+    document.getElementById('splitSelector').innerHTML = genCheck('split-check', true);
+
+    // List
+    const items = allExpenses[key] || [];
+    document.getElementById('monthlyTotalDisplay').innerText = `$${items.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
     
-    document.getElementById('tempPayerSelector').innerHTML = genCheck('temp-payer-check');
-    document.getElementById('tempSplitSelector').innerHTML = genSplit('temp-split-check');
-    document.getElementById('tempCustomAmountsContainer').innerHTML = genInput();
+    let userStats = roommateNames.map(() => 0);
+    document.getElementById('listContainer').innerHTML = items.map(item => `
+        <div class="item-row">
+            <div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)})</span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
+            <div class="item-desc">${item.note || ''}</div>
+        </div>
+    `).join('');
 
-    document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount})<span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
-
-    const monthItems = allExpenses[key] || [];
-    document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
-
-    let userStats = roommateNames.map(() => []);
-    let userTotalOwed = roommateNames.map(() => 0);
-    let userTotalPaidUpfront = roommateNames.map(() => 0);
-
-    const container = document.getElementById('listContainer');
-    container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
-
-    monthItems.forEach(item => {
-        const payersCount = item.payers.filter(Boolean).length;
-        item.payers.forEach((isPayer, idx) => { if (isPayer && userTotalPaidUpfront[idx] !== undefined) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
-
-        roommateNames.forEach((_, idx) => {
-            let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-            if (share > 0) {
-                userStats[idx].push({ name: item.name, amount: share, isPaid: item.paidBy[idx] });
-                if (!item.paidBy[idx]) userTotalOwed[idx] += share;
-            }
-        });
-
-        const div = document.createElement('div');
-        div.className = 'item-row';
-        div.innerHTML = `
-        <div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
-        ${item.note ? `<div class="item-desc">${item.note}</div>` : ''}
-        <div style="display:flex; gap:5px; margin-top:8px;">
-        ${roommateNames.map((name, index) => {
-            const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index];
-            const isDeleted = name.startsWith('[Deleted]');
-            
-            if (!hasShare && isDeleted) return ''; 
-            if (!hasShare) return `<div style="flex:1"></div>`; 
-            
-            return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;">
-            <input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name.replace('[Deleted]', '🚫')}
-            </label>`;
-        }).join('')}
-        </div>`;
-        container.appendChild(div);
-    });
-
+    // Summary
     document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
-        const isDel = name.startsWith('[Deleted]');
-        const noDebt = userTotalOwed[i] <= 0.01;
-        const noUpfront = userTotalPaidUpfront[i] <= 0.01;
-        
-        if (isDel && noDebt && noUpfront) return '';
-        
-        return `
-        <div class="user-summary-card" onclick="openDetails(${i})" style="${isDel ? 'opacity:0.6; background:#f0f0f0;' : ''}">
-        <div class="user-name-tag">${name.replace('[Deleted]', '🚫')} ℹ️</div>
-        <div style="font-size:9px; color:#666; margin-bottom:6px; background:#F2F2F7; padding:2px 4px; border-radius:4px;">Upfront: $${userTotalPaidUpfront[i] ? userTotalPaidUpfront[i].toFixed(2) : '0.00'}</div>
-        ${userStats[i].map(d => `<div style="font-size:9px; display:flex; justify-content:space-between; ${d.isPaid?'text-decoration:line-through;color:#aaa':''}"><span>${d.name}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
-        <div class="grand-total-tag" style="color: ${userTotalOwed[i] <= 0.01 ? 'var(--success)' : 'var(--danger)'}">${userTotalOwed[i] <= 0.01 ? 'PAID' : 'OWE: $' + userTotalOwed[i].toFixed(2)}</div>
-        </div>`;
+        if (name.startsWith('[Deleted]')) return '';
+        return `<div class="user-summary-card"><div class="user-name-tag">${name}</div></div>`;
     }).join('');
 }
 </script>

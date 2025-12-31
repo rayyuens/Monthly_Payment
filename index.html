@@ -373,30 +373,43 @@ window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offse
 function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
 window.openDetails = (idx) => {
-const key = getMonthKey();
-const items = allExpenses[key] || [];
-const name = roommateNames[idx];
-let html = `<b>Items ${name} Paid Upfront:</b><br>`;
-let upfrontItems = items.filter(item => item.payers[idx]);
-if(upfrontItems.length === 0) html += `<span style="color:gray">None</span><br>`;
-else upfrontItems.forEach(i => {
-const count = i.payers.filter(Boolean).length;
-html += `• ${i.name}: $${(i.amount/count).toFixed(2)}<br>`;
-});
-html += `<br><b>Items ${name} Owes for:</b><br>`;
-items.forEach(item => {
-let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-if (share > 0) {
-const status = item.paidBy[idx] ? '✅' : '❌';
-html += `<div style="display:flex; justify-content:space-between; ${item.paidBy[idx]?'color:#aaa; text-decoration:line-through':''}">
-<span>${status} ${item.name}</span> <span>$${share.toFixed(2)}</span>
-</div>`;
-}
-});
-document.getElementById('detailUserName').innerText = name + "'s Monthly Detail";
-document.getElementById('detailContent').innerHTML = html;
-document.getElementById('modalOverlay').style.display = 'block';
-document.getElementById('detailModal').style.display = 'block';
+    const key = getMonthKey();
+    const items = allExpenses[key] || [];
+    const name = roommateNames[idx];
+
+    let html = `<b style="color:var(--success)">Items ${name} Paid Upfront:</b><br>`;
+    let upfrontItems = items.filter(item => item.payers[idx]);
+    if(upfrontItems.length === 0) html += `<span style="color:gray">None</span><br>`;
+    else upfrontItems.forEach(i => {
+        const payersCount = i.payers.filter(Boolean).length;
+        html += `• ${i.name}: $${(i.amount/payersCount).toFixed(2)}<br>`;
+    });
+
+    html += `<br><b style="color:var(--danger)">Items ${name} Owes for:</b><br>`;
+    items.forEach(item => {
+        let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+        
+        if (share > 0) {
+            const status = item.paidBy[idx] ? '✅' : '❌';
+            // 搵出邊個係呢單嘢嘅付款人
+            const paidByNames = roommateNames.filter((_, pIdx) => item.payers[pIdx]).join(' & ');
+            
+            html += `<div style="display:flex; flex-direction:column; border-bottom:1px solid #eee; padding:5px 0;">
+                <div style="display:flex; justify-content:space-between; ${item.paidBy[idx] ? 'color:#aaa; text-decoration:line-through' : ''}">
+                    <span>${status} ${item.name}</span> 
+                    <span>$${share.toFixed(2)}</span>
+                </div>
+                <div style="font-size:9px; color:#8E8E93; margin-left:18px;">
+                    Paid by: ${paidByNames || 'Unknown'}
+                </div>
+            </div>`;
+        }
+    });
+
+    document.getElementById('detailUserName').innerText = name + "'s Monthly Detail";
+    document.getElementById('detailContent').innerHTML = html;
+    document.getElementById('modalOverlay').style.display = 'block';
+    document.getElementById('detailModal').style.display = 'block';
 };
 
 window.calculateSettlement = () => {
@@ -518,3 +531,4 @@ document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) =
 </script>
 </body>
 </html>
+

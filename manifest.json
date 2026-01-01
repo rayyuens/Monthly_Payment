@@ -1,0 +1,16 @@
+{
+  "name": "RoomiePay Pro",
+  "short_name": "RoomiePay",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#007AFF",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/rayyuens/Monthly_Payment/main/Icon-1024_R.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -135,6 +135,7 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 
     <div id="ledgerFoldableContent" style="display: none; margin-top: 10px;">
         <div class="ledger-tabs" id="ledgerTabs"></div>
+        
         <div id="ledgerContent">
             <table class="ledger-table">
                 <thead><tr><th>Date</th><th>Content</th><th>$</th><th></th></tr></thead>
@@ -142,12 +143,15 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
             </table>
             <div id="ledgerTotal" class="ledger-total">Total: $0.00</div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 70px; gap: 5px; margin-top: 10px;">
-            <input type="text" id="ledgerContentInput" placeholder="Item (e.g. Dinner)">
-            <input type="number" id="ledgerAmountInput" placeholder="$">
-            <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; background:var(--primary);">Add</button>
+
+        <div style="display: grid; grid-template-columns: 100px 1fr 60px 50px; gap: 5px; margin-top: 10px;">
+            <input type="date" id="ledgerDateInput" style="font-size: 10px; padding: 4px;">
+            <input type="text" id="ledgerContentInput" placeholder="Item" style="font-size: 12px;">
+            <input type="number" id="ledgerAmountInput" placeholder="$" style="font-size: 12px;">
+            <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; background:var(--primary); font-size:11px;">Add</button>
         </div>
-    </div> </div>
+    </div>
+</div>
 
 <div class="card" style="border: 1px solid #FFD600;">
 <span class="card-title">📝 Shopping Notes</span>
@@ -336,6 +340,17 @@ window.removeLedgerTab = (tab) => {
 window.addLedgerEntry = () => {
     const content = document.getElementById('ledgerContentInput').value.trim();
     const amount = parseFloat(document.getElementById('ledgerAmountInput').value);
+    const dateInput = document.getElementById('ledgerDateInput').value;
+    
+    // 如果冇揀日期，就用今日 (格式: DD/MM)
+    let finalDate;
+    if (dateInput) {
+        const d = new Date(dateInput);
+        finalDate = d.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
+    } else {
+        finalDate = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
+    }
+
     if(content && !isNaN(amount)) {
         const key = getMonthKey();
         if(!ledgerData[key]) ledgerData[key] = {};
@@ -343,12 +358,15 @@ window.addLedgerEntry = () => {
         
         ledgerData[key][activeLedgerTab].push({
             id: Date.now(),
-            date: new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'}),
+            date: finalDate, // 使用處理過嘅日期
             content,
             amount
         });
+        
+        // 清空輸入框
         document.getElementById('ledgerContentInput').value = '';
         document.getElementById('ledgerAmountInput').value = '';
+        document.getElementById('ledgerDateInput').value = ''; 
         pushToCloud();
     }
 };
@@ -628,4 +646,5 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
 

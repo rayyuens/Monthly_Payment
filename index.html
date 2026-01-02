@@ -92,6 +92,20 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 .custom-val-input { font-size: 11px; padding: 6px; text-align: center; }
 .toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
 .toggle-container input { width: auto; }
+/* 專門修復 iOS 日期框寬度同內置 icon 導致嘅重疊 */
+#ledgerDateInput {
+    -webkit-appearance: none; /* 移除 iOS 預設樣式 */
+    min-width: 0;             /* 允許縮小 */
+    padding: 4px 2px;
+    font-size: 11px;
+}
+
+/* 確保日期輸入框唔會撐大 */
+input[type="date"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-calendar-picker-indicator {
+    margin: 0;
+    padding: 0;
+}
 </style>
 </head>
 <body>
@@ -144,11 +158,11 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
             <div id="ledgerTotal" class="ledger-total">Total: $0.00</div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 100px 1fr 60px 50px; gap: 5px; margin-top: 10px;">
-            <input type="date" id="ledgerDateInput" style="font-size: 10px; padding: 4px;">
-            <input type="text" id="ledgerContentInput" placeholder="Item" style="font-size: 12px;">
-            <input type="number" id="ledgerAmountInput" placeholder="$" style="font-size: 12px;">
-            <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; background:var(--primary); font-size:11px;">Add</button>
+        <div style="display: grid; grid-template-columns: 85px 1fr 60px 45px; gap: 4px; margin-top: 10px; align-items: center;">
+            <input type="date" id="ledgerDateInput">
+            <input type="text" id="ledgerContentInput" placeholder="Item">
+            <input type="number" id="ledgerAmountInput" placeholder="$">
+            <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; background:var(--primary); font-size:10px; padding: 8px 0;">Add</button>
         </div>
     </div>
 </div>
@@ -646,5 +660,6 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
 
 

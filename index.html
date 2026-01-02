@@ -149,21 +149,6 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
         </div>
     </div> </div>
 
-    
-    <div id="ledgerContent">
-        <table class="ledger-table">
-            <thead><tr><th>Date</th><th>Content</th><th>$</th><th></th></tr></thead>
-            <tbody id="ledgerBody"></tbody>
-        </table>
-        <div id="ledgerTotal" class="ledger-total">Total: $0.00</div>
-    </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr 70px; gap: 5px; margin-top: 10px;">
-        <input type="text" id="ledgerContentInput" placeholder="Item (e.g. Dinner)">
-        <input type="number" id="ledgerAmountInput" placeholder="$">
-        <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; background:var(--primary);">Add</button>
-    </div>
-</div>
-
 <div class="card" style="border: 1px solid #FFD600;">
 <span class="card-title">📝 Shopping Notes</span>
 <div id="notesContainer" style="margin-bottom: 10px;"></div>
@@ -643,3 +628,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+

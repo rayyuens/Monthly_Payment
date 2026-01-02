@@ -26,7 +26,7 @@ body {
 font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 background-color: var(--bg); color: var(--text); margin: 0; padding: 10px;
 padding-bottom: 260px;
-overscroll-behavior-y: contain;
+overscroll-behavior-y: contain; /* Prevents bounce refresh in PWA mode */
 }
 
 #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
@@ -37,13 +37,6 @@ overscroll-behavior-y: contain;
 
 .card { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
 .card-title { font-size: 10px; font-weight: 800; color: #8E8E93; text-transform: uppercase; margin-bottom: 8px; display: block; }
-
-/* Notes System Styles */
-.note-tabs { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; }
-.note-tab { padding: 6px 12px; background: #E5E5EA; border-radius: 15px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; border: none; }
-.note-tab.active { background: #FFD600; color: #000; }
-.note-counter-bar { background: #FFFDE7; border: 1px dashed #FFD600; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; text-align: center; margin-bottom: 10px; cursor: pointer; }
-.note-item { background: var(--note-bg); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-left: 4px solid #FFD600; }
 
 .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: var(--card); padding: 8px 12px; border-radius: 12px; }
 .month-label { font-weight: 700; font-size: 16px; }
@@ -57,8 +50,22 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 
 .split-selector { display: flex; gap: 5px; margin-bottom: 5px; }
 .split-pill { flex: 1; background: #fff; padding: 6px 2px; border-radius: 8px; text-align: center; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--border); transition: all 0.2s ease; }
+.split-pill input[type="checkbox"] { width: 13px; height: 13px; margin: 0; }
+.payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
+
+.pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; }
+.pill-locked { opacity: 0.8; } 
+
 .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
 .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
+
+.note-item { background: var(--note-bg); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-left: 4px solid #FFD600; }
+.note-text { font-weight: 500; color: #444; }
+
+.item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
+.item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
+.item-desc { font-size: 10px; color: #8E8E93; font-weight: 400; margin-top: 2px; }
+.payer-info { font-weight: 400; color: #8E8E93; font-size: 11px; margin-left: 4px; }
 .delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
 
 .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); padding: 12px; border-top: 1px solid #D1D1D6; z-index: 1000; }
@@ -71,10 +78,11 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 
 .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:85%; max-width:320px; max-height: 80vh; overflow-y: auto; }
 #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
-.item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
-.item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
+.detail-row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #F2F2F7; }
+.detail-paid { color: #aaa; text-decoration: line-through; }
 .custom-val-input { font-size: 11px; padding: 6px; text-align: center; }
 .toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
+.toggle-container input { width: auto; }
 </style>
 </head>
 <body>
@@ -111,16 +119,12 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 </div>
 
 <div class="card" style="border: 1px solid #FFD600;">
-    <span class="card-title">📝 Categorized Notes</span>
-    <div class="note-tabs" id="noteTabs"></div>
-    <div class="note-counter-bar" id="noteCounter" onclick="autoFillFromNote()">
-        Total in Category: $0.00 (Tap to add)
-    </div>
-    <div id="notesContainer" style="margin-bottom: 10px; max-height: 150px; overflow-y: auto;"></div>
-    <div style="display: flex; gap: 5px;">
-        <input type="text" id="noteInput" placeholder="Item name, $25 e.g.">
-        <button onclick="addNote()" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
-    </div>
+<span class="card-title">📝 Shopping Notes</span>
+<div id="notesContainer" style="margin-bottom: 10px;"></div>
+<div style="display: flex; gap: 5px;">
+<input type="text" id="noteInput" placeholder="What do we need?">
+<button onclick="addNote()" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
+</div>
 </div>
 
 <div class="total-banner">
@@ -137,20 +141,34 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 <input type="text" id="newUserName" placeholder="New User Name">
 <button onclick="addNewUser()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
 </div>
-
-<span class="card-title">1. Note Categories</span>
-<div id="noteCategoryList" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
-<div style="display:flex; gap:5px; margin-bottom:15px;">
-<input type="text" id="newCatName" placeholder="New Category (e.g. Grocery)">
-<button onclick="addNoteCategory()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
-</div>
 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
 
-<span class="card-title">2. Custom Quick Tags</span>
+<span class="card-title">1. Custom Quick Tags</span>
 <div id="customTagsList" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
 <div style="display:flex; gap:5px; margin-bottom:15px;">
 <input type="text" id="newTagName" placeholder="New tag">
 <button onclick="addCustomTag()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
+</div>
+
+<span class="card-title">2. Manage Templates</span>
+<div id="templateList" style="margin-bottom: 10px;"></div>
+<div style="display:flex; gap:5px; margin-bottom:5px;">
+<input type="text" id="tempName" placeholder="Name">
+<input type="number" id="tempAmount" placeholder="$" style="width:35%">
+</div>
+<input type="text" id="tempNote" placeholder="Notes" style="margin-bottom: 8px; font-size: 12px;">
+<span class="label-sm">Who usually pays?</span>
+<div class="split-selector" id="tempPayerSelector"></div>
+<div class="toggle-container">
+<input type="checkbox" id="tempCustomSplitToggle" onchange="toggleTempCustomInputs()"> 
+<label for="tempCustomSplitToggle">Use Custom Split Amounts ($)</label>
+</div>
+<span class="label-sm">Split between:</span>
+<div class="split-selector" id="tempSplitSelector"></div>
+<div id="tempCustomAmountsContainer" style="display:none; gap:5px; margin-bottom:10px;"></div>
+<div style="display:flex; gap:8px;">
+<button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save Template</button>
+<button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
 </div>
 </div>
 
@@ -165,7 +183,7 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 <span class="label-sm">Who Paid?</span>
 <div class="split-selector" id="payerSelector"></div>
 <div class="toggle-container">
-<input type="checkbox" id="customSplitToggle" onchange="toggleCustomInputs()"> 
+<input type="checkbox" id="customSplitToggle" onchange="toggleCustomInputs()"> 
 <label for="customSplitToggle">Use Custom Split Amounts ($)</label>
 </div>
 <span class="label-sm">Split Between:</span>
@@ -187,15 +205,19 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 </div>
 
 <script>
-const APP_PASSWORD = "  "; 
+const APP_PASSWORD = "  "; 
 let viewDate = new Date(); viewDate.setDate(1);
 let roommateNames = ["Ray", "Roy", "Irene"];
-let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas"];
-let noteCategories = ["Food", "Grocery", "Other"];
-let activeNoteCat = "Food";
+let templates = [];
+let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
 let allExpenses = {};
-let shoppingNotes = []; // {id, text, category}
+let shoppingNotes = []; 
 let db;
+
+window.fillItem = (name, targetId = 'itemName') => {
+document.getElementById(targetId).value = name;
+if(targetId === 'itemName') document.getElementById('itemAmount').focus();
+};
 
 function checkPassword() {
 if (document.getElementById('passInput').value === APP_PASSWORD) {
@@ -221,136 +243,278 @@ projectId: "roomiepay-76a38"
 };
 if (!firebase.apps.length) firebase.initializeApp(config);
 db = firebase.database();
-db.ref('roomiePay_v12').on('value', (snap) => {
+db.ref('roomiePay_v11').on('value', (snap) => {
 const data = snap.val();
 if (data) {
-roommateNames = data.names || roommateNames;
-quickTags = data.quickTags || quickTags;
-noteCategories = data.noteCategories || noteCategories;
+roommateNames = data.names || ["Ray", "Roy", "Irene"];
+templates = data.templates || [];
+quickTags = data.quickTags || ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
 allExpenses = data.expenses || {};
-shoppingNotes = data.notes || []; 
+shoppingNotes = data.notes || []; 
 }
 render();
 document.getElementById('cloudStatus').innerText = "● Cloud Synced";
 });
 }
 
-window.pushToCloud = () => db.ref('roomiePay_v12').set({ 
-names: roommateNames, quickTags, noteCategories, expenses: allExpenses, notes: shoppingNotes 
+window.pushToCloud = () => db.ref('roomiePay_v11').set({ 
+names: roommateNames, templates, quickTags, expenses: allExpenses, notes: shoppingNotes 
 });
 
-// Notes System Logic
+window.addNewUser = () => {
+const val = document.getElementById('newUserName').value.trim();
+if(val) {
+if(!roommateNames.includes(val)) {
+roommateNames.push(val);
+document.getElementById('newUserName').value = '';
+pushToCloud();
+} else {
+alert("User already exists!");
+}
+}
+};
+
+window.updateUser = (idx, newName) => {
+if(newName && newName.trim() !== "") {
+roommateNames[idx] = newName.trim();
+pushToCloud();
+}
+};
+
+window.removeUser = (idx) => {
+if(confirm("Warning: Deleting a user shifts the index order. This might mess up historical data. Are you sure?")) {
+roommateNames.splice(idx, 1);
+pushToCloud();
+}
+};
+
+window.toggleCustomInputs = () => {
+document.getElementById('customAmountsContainer').style.display = document.getElementById('customSplitToggle').checked ? 'flex' : 'none';
+};
+
+window.toggleTempCustomInputs = () => {
+document.getElementById('tempCustomAmountsContainer').style.display = document.getElementById('tempCustomSplitToggle').checked ? 'flex' : 'none';
+};
+
 window.addNote = () => {
-    const input = document.getElementById('noteInput');
-    if(input.value.trim()) {
-        shoppingNotes.push({ id: Date.now(), text: input.value.trim(), category: activeNoteCat });
-        input.value = ''; pushToCloud();
-    }
+const input = document.getElementById('noteInput');
+if(input.value.trim()) {
+shoppingNotes.push({ id: Date.now(), text: input.value.trim() });
+input.value = ''; pushToCloud();
+}
 };
 
 window.deleteNote = (id) => { shoppingNotes = shoppingNotes.filter(n => n.id !== id); pushToCloud(); };
+window.addCustomTag = () => {
+const val = document.getElementById('newTagName').value.trim();
+if(val) { quickTags.push(val); document.getElementById('newTagName').value = ''; pushToCloud(); }
+};
+window.removeTag = (idx) => { quickTags.splice(idx, 1); pushToCloud(); };
 
-window.addNoteCategory = () => {
-    const val = document.getElementById('newCatName').value.trim();
-    if(val && !noteCategories.includes(val)) {
-        noteCategories.push(val); document.getElementById('newCatName').value = ''; pushToCloud();
+window.addItem = () => {
+const name = document.getElementById('itemName').value;
+const amount = parseFloat(document.getElementById('itemAmount').value);
+const note = document.getElementById('itemNote').value.trim();
+const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
+const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
+const isCustom = document.getElementById('customSplitToggle').checked;
+let customAmounts = isCustom ? Array.from(document.querySelectorAll('#customAmountsContainer .custom-val-input')).map(i => parseFloat(i.value) || 0) : null;
+
+if (isCustom && Math.abs(customAmounts.reduce((a,b)=>a+b,0) - amount) > 0.01) {
+alert("Custom sum must match total amount"); return;
+}
+
+if (name && !isNaN(amount)) {
+const key = getMonthKey();
+if (!allExpenses[key]) allExpenses[key] = [];
+allExpenses[key].push({ 
+id: Date.now(), name, amount, note, payers, splitBetween: participants, 
+paidBy: participants.map((p, i) => p && (payers[i] || false)), customAmounts 
+});
+['itemName','itemAmount','itemNote'].forEach(id => document.getElementById(id).value = '');
+document.getElementById('customSplitToggle').checked = false;
+toggleCustomInputs();
+pushToCloud();
+}
+};
+
+window.addTemplateItem = () => {
+const name = document.getElementById('tempName').value;
+const amount = parseFloat(document.getElementById('tempAmount').value);
+const note = document.getElementById('tempNote').value.trim();
+const payers = Array.from(document.querySelectorAll('.temp-payer-check')).map(n => n.checked);
+const splits = Array.from(document.querySelectorAll('.temp-split-check')).map(n => n.checked);
+const isCustom = document.getElementById('tempCustomSplitToggle').checked;
+let customAmounts = isCustom ? Array.from(document.querySelectorAll('#tempCustomAmountsContainer .custom-val-input')).map(i => parseFloat(i.value) || 0) : null;
+
+if(name && !isNaN(amount)) {
+templates.push({ name, amount, note, payers, splitBetween: splits, customAmounts });
+['tempName','tempAmount','tempNote'].forEach(id => document.getElementById(id).value = '');
+document.getElementById('tempCustomSplitToggle').checked = false;
+toggleTempCustomInputs();
+pushToCloud();
+}
+};
+
+window.applyTemplates = () => {
+const key = getMonthKey();
+if (!allExpenses[key]) allExpenses[key] = [];
+templates.forEach(t => {
+allExpenses[key].push({ 
+...t, id: Date.now() + Math.random(), 
+paidBy: t.splitBetween.map((p, i) => p && (t.payers[i] || false)) 
+});
+});
+pushToCloud();
+document.getElementById('templateSection').style.display = 'none';
+};
+
+window.clearAllExpenses = () => { if (confirm("Clear all?")) { allExpenses[getMonthKey()] = []; pushToCloud(); } };
+window.deleteItem = (id) => { allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id); pushToCloud(); };
+
+window.togglePaid = (id, idx) => {
+    const item = allExpenses[getMonthKey()].find(e => e.id === id);
+    if (item) { 
+        item.paidBy[idx] = !item.paidBy[idx]; 
+        pushToCloud(); 
     }
 };
 
-window.removeNoteCategory = (idx) => {
-    if(confirm("Delete category and its notes?")) {
-        const cat = noteCategories[idx];
-        shoppingNotes = shoppingNotes.filter(n => n.category !== cat);
-        noteCategories.splice(idx, 1);
-        if(activeNoteCat === cat) activeNoteCat = noteCategories[0] || "";
-        pushToCloud();
-    }
-};
-
-window.autoFillFromNote = () => {
-    const currentNotes = shoppingNotes.filter(n => n.category === activeNoteCat);
-    let total = 0;
-    currentNotes.forEach(n => {
-        const matches = n.text.match(/\$(\d+(\.\d+)?)/);
-        if (matches) total += parseFloat(matches[1]);
-    });
-    document.getElementById('itemName').value = activeNoteCat + " Total";
-    document.getElementById('itemAmount').value = total.toFixed(2);
-};
-
-// Core App Functions
+window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
 window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
 function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
 
-window.addItem = () => {
-    const name = document.getElementById('itemName').value;
-    const amount = parseFloat(document.getElementById('itemAmount').value);
-    const note = document.getElementById('itemNote').value.trim();
-    const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
-    const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
-    const isCustom = document.getElementById('customSplitToggle').checked;
-    let customAmounts = isCustom ? Array.from(document.querySelectorAll('#customAmountsContainer .custom-val-input')).map(i => parseFloat(i.value) || 0) : null;
+window.openDetails = (idx) => {
+    const key = getMonthKey();
+    const items = allExpenses[key] || [];
+    const name = roommateNames[idx];
+    let totalUpfront = 0; let totalShare = 0;
 
-    if (name && !isNaN(amount)) {
-        const key = getMonthKey();
-        if (!allExpenses[key]) allExpenses[key] = [];
-        allExpenses[key].push({ 
-            id: Date.now(), name, amount, note, payers, splitBetween: participants, 
-            paidBy: participants.map((p, i) => p && (payers[i] || false)), customAmounts 
-        });
-        ['itemName','itemAmount','itemNote'].forEach(id => document.getElementById(id).value = '');
-        pushToCloud();
-    }
+    items.forEach(item => {
+        const payersCount = item.payers.filter(Boolean).length;
+        if(item.payers[idx]) totalUpfront += (item.amount / payersCount);
+        let shareAmt = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+        totalShare += shareAmt;
+    });
+
+    let dashboardHtml = `<div style="background:#F2F2F7; padding:12px; border-radius:12px; margin-bottom:15px; display:flex; justify-content:space-around; text-align:center;"><div><span style="font-size:10px; color:#666; font-weight:700; text-transform:uppercase;">Total Upfront</span><br><span style="font-size:16px; font-weight:800; color:var(--primary);">$${totalUpfront.toFixed(2)}</span></div><div style="border-left:1px solid #D1D1D6;"></div><div><span style="font-size:10px; color:#666; font-weight:700; text-transform:uppercase;">Total Share</span><br><span style="font-size:16px; font-weight:800;">$${totalShare.toFixed(2)}</span></div></div>`;
+
+    let upfrontHtml = `<b style="color:var(--primary); font-size:12px;">💰 PAID UPFRONT (Others owe you):</b><br>`;
+    let upfrontItems = items.filter(item => item.payers[idx]);
+    if(upfrontItems.length === 0) upfrontHtml += `<span style="color:gray; font-size:12px;">None</span><br>`;
+    else { upfrontItems.forEach(i => { const payersCount = i.payers.filter(Boolean).length; upfrontHtml += `<div class="detail-row"><span>• ${i.name}</span> <span>$${(i.amount/payersCount).toFixed(2)}</span></div>`; }); }
+
+    let shareHtml = `<br><b style="color:var(--text); font-size:12px;">🧾 YOUR SHARE (To Pay):</b><br>`;
+    let shareCount = 0;
+    items.forEach(item => {
+        let shareAmt = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+        if (shareAmt > 0) {
+            shareCount++;
+            const status = item.paidBy[idx] ? '✅' : '❌';
+            const paidByNames = roommateNames.filter((_, pIdx) => item.payers[pIdx]).join(' & ');
+            shareHtml += `<div style="display:flex; flex-direction:column; border-bottom:1px solid #F2F2F7; padding:8px 0;"><div style="display:flex; justify-content:space-between; ${item.paidBy[idx] ? 'color:#aaa; text-decoration:line-through' : ''}"><div><span>${status} ${item.name}</span><span style="font-size:10px; color:#8E8E93; margin-left:4px;">(Total: $${item.amount.toFixed(0)})</span></div><span style="font-weight:600;">$${shareAmt.toFixed(2)}</span></div><div style="font-size:10px; color:#8E8E93; margin-top:2px;">Paid by: <span style="color:#555;">${paidByNames || 'System'}</span></div></div>`;
+        }
+    });
+    if(shareCount === 0) shareHtml += `<span style="color:gray; font-size:12px;">None</span>`;
+
+    document.getElementById('detailUserName').innerText = name + "'s Breakdown";
+    document.getElementById('detailContent').innerHTML = dashboardHtml + upfrontHtml + shareHtml;
+    document.getElementById('modalOverlay').style.display = 'block';
+    document.getElementById('detailModal').style.display = 'block';
 };
 
-window.deleteItem = (id) => { allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id); pushToCloud(); };
-window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
-window.closeAllModals = () => { document.querySelectorAll('.modal, #modalOverlay').forEach(el => el.style.display = 'none'); };
+window.calculateSettlement = () => {
+    const items = allExpenses[getMonthKey()] || [];
+    let balances = roommateNames.map(() => 0);
+    items.forEach(item => {
+        const payersCount = item.payers.filter(Boolean).length;
+        if (payersCount === 0) return;
+        roommateNames.forEach((_, i) => {
+            let share = item.customAmounts ? item.customAmounts[i] : (item.splitBetween[i] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+            if (share > 0 && !item.paidBy[i]) {
+                balances[i] -= share;
+                item.payers.forEach((isPayer, pIdx) => { if (isPayer) balances[pIdx] += (share / payersCount); });
+            }
+        });
+    });
+    let debtors = [], creditors = [], results = [];
+    balances.forEach((bal, i) => {
+        if (bal < -0.01) debtors.push({ name: roommateNames[i], amt: -bal });
+        else if (bal > 0.01) creditors.push({ name: roommateNames[i], amt: bal });
+    });
+    let d = 0, c = 0;
+    while (d < debtors.length && c < creditors.length) {
+        let settleAmt = Math.min(debtors[d].amt, creditors[c].amt);
+        results.push(`<b>${debtors[d].name}</b> → $${settleAmt.toFixed(2)} → <b>${creditors[c].name}</b>`);
+        debtors[d].amt -= settleAmt; creditors[c].amt -= settleAmt;
+        if (debtors[d].amt < 0.01) d++; if (creditors[c].amt < 0.01) c++;
+    }
+    document.getElementById('settlementResults').innerHTML = results.length > 0 ? results.join('<br>') : "All items settled! 🎉";
+    document.getElementById('modalOverlay').style.display = 'block';
+    document.getElementById('settlementModal').style.display = 'block';
+};
+
+window.closeAllModals = () => {
+document.getElementById('modalOverlay').style.display = 'none';
+document.getElementById('settlementModal').style.display = 'none';
+document.getElementById('detailModal').style.display = 'none';
+};
 
 function render() {
-    const key = getMonthKey();
-    
-    // Render Note Tabs & Content
-    document.getElementById('noteTabs').innerHTML = noteCategories.map(cat => 
-        `<button class="note-tab ${activeNoteCat === cat ? 'active' : ''}" onclick="activeNoteCat='${cat}'; render();">${cat}</button>`
-    ).join('');
-    
-    const currentNotes = shoppingNotes.filter(n => n.category === activeNoteCat);
-    let catTotal = 0;
-    document.getElementById('notesContainer').innerHTML = currentNotes.map(n => {
-        const matches = n.text.match(/\$(\d+(\.\d+)?)/);
-        if (matches) catTotal += parseFloat(matches[1]);
-        return `<div class="note-item"><span>${n.text}</span><button class="delete-btn" onclick="deleteNote(${n.id})">✕</button></div>`;
-    }).join('');
-    document.getElementById('noteCounter').innerHTML = `Total ${activeNoteCat}: $${catTotal.toFixed(2)} (Tap to add to Checklist)`;
+const key = getMonthKey();
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
+document.getElementById('notesContainer').innerHTML = shoppingNotes.map(n => `<div class="note-item"><span class="note-text">${n.text}</span><button class="delete-btn" onclick="deleteNote(${n.id})">✕</button></div>`).join('');
+document.getElementById('quickTagsContainer').innerHTML = '<span class="label-sm" style="margin:0; align-self:center;">Quick:</span>' + quickTags.map(tag => `<button class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px;" onclick="fillItem('${tag}')">${tag}</button>`).join('');
+document.getElementById('customTagsList').innerHTML = quickTags.map((tag, i) => `<div class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px; display:flex; align-items:center; gap:5px;"><span onclick="fillItem('${tag}', 'tempName')">${tag}</span><span style="color:red; font-weight:800;" onclick="removeTag(${i})">×</span></div>`).join('');
+document.getElementById('userManagementList').innerHTML = roommateNames.map((name, i) => `<div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;"><input type="text" value="${name}" onchange="updateUser(${i}, this.value)" style="padding:4px; font-size:12px;"><button class="delete-btn" style="width:25px; height:25px;" onclick="removeUser(${i})">✕</button></div>`).join('');
+const genCheck = (cls) => roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="${cls}"> ${n}</label>`).join('');
+document.getElementById('payerSelector').innerHTML = genCheck('payer-check');
+document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
+document.getElementById('customAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
+document.getElementById('tempPayerSelector').innerHTML = genCheck('temp-payer-check');
+document.getElementById('tempSplitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="temp-split-check" checked> ${n}</label>`).join('');
+document.getElementById('tempCustomAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
+document.getElementById('templateList').innerHTML = templates.map((t, i) => `<div style="font-size:11px; padding:4px 0; border-bottom:1px solid #eee;">• ${t.name} ($${t.amount})<span style="color:red; float:right;" onclick="templates.splice(${i},1); pushToCloud();">✕</span></div>`).join('');
+const monthItems = allExpenses[key] || [];
+document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
+let userTotalShare = roommateNames.map(() => 0);
+let userTotalPaidUpfront = roommateNames.map(() => 0);
+let userFinalBalance = roommateNames.map(() => 0);
+const container = document.getElementById('listContainer');
+container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
+monthItems.forEach(item => {
+    const payersCount = item.payers.filter(Boolean).length;
+    item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
+    roommateNames.forEach((_, idx) => {
+        let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
+        userTotalShare[idx] += share;
+        if (share > 0 && !item.paidBy[idx]) {
+            userFinalBalance[idx] -= share;
+            item.payers.forEach((isPayer, pIdx) => { if (isPayer) userFinalBalance[pIdx] += (share / payersCount); });
+        }
+    });
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>${item.note ? `<div class="item-desc">${item.note}</div>` : ''}<div style="display:flex; gap:5px; margin-top:8px;">${roommateNames.map((name, index) => { const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index]; if (!hasShare) return `<div style="flex:1"></div>`; return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;"><input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}</label>`; }).join('')}</div>`;
+    container.appendChild(div);
+});
+document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
+    const balance = userFinalBalance[i];
+    const balanceText = balance >= 0 ? `GET: $${balance.toFixed(2)}` : `OWE: $${Math.abs(balance).toFixed(2)}`;
+    const balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+    return `<div class="user-summary-card" onclick="openDetails(${i})"><div class="user-name-tag">${name} ℹ️</div><div class="stat-box"><div class="stat-row"><span>Paid:</span> <span>$${userTotalPaidUpfront[i].toFixed(2)}</span></div><div class="stat-row"><span>Share:</span> <span>$${userTotalShare[i].toFixed(2)}</span></div></div><div class="grand-total-tag" style="color: ${balanceColor}">${balanceText}</div></div>`;
+}).join('');
+}
 
-    // Render Settings
-    document.getElementById('noteCategoryList').innerHTML = noteCategories.map((cat, i) => 
-        `<div class="note-tab" style="display:flex; gap:5px; align-items:center;">${cat} <span style="color:red" onclick="removeNoteCategory(${i})">×</span></div>`
-    ).join('');
-    
-    // Standard Renders (Expenses, Summary, etc.)
-    const monthItems = allExpenses[key] || [];
-    document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
-    document.getElementById('monthDisplay').innerText = viewDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-    
-    const genCheck = (cls, checked = false) => roommateNames.map(n => `<label class="split-pill ${cls.includes('payer')?'payer-pill':''}"><input type="checkbox" class="${cls}" ${checked?'checked':''}> ${n}</label>`).join('');
-    document.getElementById('payerSelector').innerHTML = genCheck('payer-check');
-    document.getElementById('splitSelector').innerHTML = genCheck('split-check', true);
-    document.getElementById('customAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
-
-    const container = document.getElementById('listContainer');
-    container.innerHTML = monthItems.map(item => `
-        <div class="item-row">
-            <div class="item-header">
-                <span>${item.name} ($${item.amount.toFixed(2)})</span>
-                <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
-            </div>
-            <div style="font-size:10px; color:#888;">Paid by: ${roommateNames.filter((_,i)=>item.payers[i]).join(' & ')}</div>
-        </div>
-    `).join('');
+// REGISTER SERVICE WORKER
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW Registered'))
+      .catch(err => console.log('SW Registration Failed', err));
+  });
 }
 </script>
 </body>
 </html>
-

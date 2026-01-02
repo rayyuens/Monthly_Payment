@@ -64,183 +64,134 @@ input { padding: 8px; border-radius: 8px; border: 1.5px solid #E5E5EA; font-size
 .payer-pill { background: #F0F9FF; border-color: #007AFF; color: #007AFF; }
 
 .pill-paid { background: var(--success) !important; border-color: var(--success) !important; color: white !important; }
-.pill-locked { opacity: 0.8; } 
 
 .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; font-weight: 700; width: 100%; margin-top: 8px; font-size: 13px; }
 .btn-template-toggle { background: #E5E5EA; color: #3A3A3C; border: none; padding: 6px 12px; font-size: 11px; border-radius: 20px; font-weight: 600; margin: 0 auto 10px; display: block; }
 
 .note-item { background: var(--note-bg); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-left: 4px solid #FFD600; }
-.note-text { font-weight: 500; color: #444; }
+.delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
 
 .item-row { border-bottom: 1px solid #F2F2F7; padding: 10px 0; }
 .item-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; }
-.item-desc { font-size: 10px; color: #8E8E93; font-weight: 400; margin-top: 2px; }
-.payer-info { font-weight: 400; color: #8E8E93; font-size: 11px; margin-left: 4px; }
-.delete-btn { background: #FF3B3015; color: var(--danger); border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
+.item-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.status-pill { padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; background: #E5E5EA; border: 1px solid #D1D1D6; cursor: pointer; }
 
 .summary-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); backdrop-filter: blur(15px); padding: 12px; border-top: 1px solid #D1D1D6; z-index: 1000; }
 .summary-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
-.user-summary-card { min-width: 150px; flex-shrink: 0; background: white; padding: 10px; border-radius: 12px; border: 1px solid #E5E5EA; cursor: pointer; }
-.user-name-tag { font-size: 10px; font-weight: 900; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #F2F2F7; margin-bottom: 5px; }
-.stat-box { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
-.stat-row { font-size: 10px; display: flex; justify-content: space-between; padding: 2px 4px; border-radius: 4px; background: #F2F2F7; }
-.grand-total-tag { font-weight: 800; font-size: 13px; margin-top: 5px; border-top: 1px dashed #E5E5EA; padding-top: 5px; text-align: center; }
+.user-summary-card { min-width: 140px; flex-shrink: 0; background: white; padding: 10px; border-radius: 12px; border: 1px solid #E5E5EA; text-align: center; }
+.user-name-tag { font-size: 10px; font-weight: 900; color: var(--primary); text-transform: uppercase; margin-bottom: 5px; }
 
 .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:10001; width:85%; max-width:320px; max-height: 80vh; overflow-y: auto; }
 #modalOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; }
+.detail-row { display: flex; justify-content: space-between; font-size: 12px; padding: 8px 0; border-bottom: 1px solid #F2F2F7; }
 .custom-val-input { font-size: 11px; padding: 6px; text-align: center; }
-.toggle-container { display: flex; align-items: center; gap: 5px; margin: 10px 0; font-size: 11px; font-weight: 600; color: #666; }
-.toggle-container input { width: auto; }
 </style>
 </head>
 <body>
 
 <div id="loginOverlay">
-<div class="login-card">
-<h2>RoomiePay</h2>
-<input type="password" id="passInput" placeholder="Password" style="text-align: center;">
-<button onclick="checkPassword()" class="btn-add">Unlock</button>
-</div>
+<div class="login-card"><h2>RoomiePay</h2><input type="password" id="passInput" placeholder="Password" style="text-align: center;"><button onclick="checkPassword()" class="btn-add">Unlock</button></div>
 </div>
 
 <div id="modalOverlay" onclick="closeAllModals()"></div>
 
 <div id="settlementModal" class="modal">
-<h3 style="margin-top:0; font-size:16px; text-align: center;">Final Settlement</h3>
-<div id="settlementResults" style="font-size:14px; line-height:1.6; color:#333; margin:15px 0;"></div>
-<button onclick="closeAllModals()" class="btn-add" style="margin:0; padding:8px;">Got it</button>
+    <h3 style="margin-top:0; font-size:16px; text-align: center;">Settlement</h3>
+    <div id="settlementResults" style="font-size:14px; line-height:1.6; margin:15px 0;"></div>
+    <button onclick="closeAllModals()" class="btn-add">Close</button>
 </div>
 
 <div id="detailModal" class="modal">
-<h3 id="detailUserName" style="margin-top:0; font-size:16px; text-align: center; color: var(--primary);">User Details</h3>
-<div id="detailContent" style="font-size:13px;"></div>
-<button onclick="closeAllModals()" class="btn-add" style="margin-top:15px; padding:8px;">Close</button>
+    <h3 id="detailUserName" style="margin-top:0; font-size:16px; text-align: center; color: var(--primary);">Details</h3>
+    <div id="detailContent"></div>
+    <button onclick="closeAllModals()" class="btn-add" style="margin-top:15px;">Close</button>
 </div>
 
 <div id="mainContent">
-<div class="cloud-status" id="cloudStatus">Connecting...</div>
+    <div class="cloud-status" id="cloudStatus">Connecting...</div>
 
-<div class="month-nav">
-<button class="nav-btn" onclick="changeMonth(-1)">❮</button>
-<div id="monthDisplay" class="month-label">Month</div>
-<button class="nav-btn" onclick="changeMonth(1)">❯</button>
-</div>
-
-<div class="card" style="border: 1px solid var(--primary); background: #f8fbff;">
-    <div class="ledger-header" onclick="toggleLedgerFold()">
-        <span class="card-title" style="margin:0;">📊 Categorized Ledger</span>
-        <span id="ledgerFoldIcon" style="font-size:12px; color:var(--primary);">▼ Expand</span>
+    <div class="month-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
+        <div id="monthDisplay" class="month-label">Month</div>
+        <button class="nav-btn" onclick="changeMonth(1)">❯</button>
     </div>
-    
-    <div id="ledgerFoldableContent" style="display:none; margin-top:10px;">
-        <div class="ledger-tabs" id="ledgerTabs"></div>
-        <div id="ledgerTableContainer">
-            <table class="ledger-table">
-                <thead><tr><th>Date</th><th>Content</th><th>$</th><th></th></tr></thead>
-                <tbody id="ledgerBody"></tbody>
-            </table>
-            <div id="ledgerTotal" class="ledger-total">Total: $0.00</div>
+
+    <div class="card" style="border: 1px solid var(--primary); background: #f8fbff;">
+        <div class="ledger-header" onclick="toggleLedgerFold()">
+            <span class="card-title" style="margin:0;">📊 Categorized Ledger</span>
+            <span id="ledgerFoldIcon" style="font-size:11px; color:var(--primary);">▼ Expand</span>
         </div>
-        <div style="display: grid; grid-template-columns: 100px 1fr 60px 50px; gap: 5px; margin-top: 10px;">
-            <input type="date" id="ledgerDateInput" style="font-size:11px; padding:4px;">
-            <input type="text" id="ledgerContentInput" placeholder="Item">
-            <input type="number" id="ledgerAmountInput" placeholder="$">
-            <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; background:var(--primary); font-size:11px;">Add</button>
+        <div id="ledgerFoldableContent" style="display:none; margin-top:10px;">
+            <div class="ledger-tabs" id="ledgerTabs"></div>
+            <div id="ledgerContent">
+                <table class="ledger-table">
+                    <thead><tr><th>Date</th><th>Item</th><th>$</th><th></th></tr></thead>
+                    <tbody id="ledgerBody"></tbody>
+                </table>
+                <div id="ledgerTotal" class="ledger-total">Total: $0.00</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 100px 1fr 60px 45px; gap: 5px; margin-top: 10px;">
+                <input type="date" id="ledgerDateInput" style="font-size:11px;">
+                <input type="text" id="ledgerContentInput" placeholder="Item">
+                <input type="number" id="ledgerAmountInput" placeholder="$">
+                <button onclick="addLedgerEntry()" class="btn-add" style="margin:0; font-size:11px;">Add</button>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="card" style="border: 1px solid #FFD600;">
-<span class="card-title">📝 Shopping Notes</span>
-<div id="notesContainer" style="margin-bottom: 10px;"></div>
-<div style="display: flex; gap: 5px;">
-<input type="text" id="noteInput" placeholder="What do we need?">
-<button onclick="addNote()" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
-</div>
-</div>
+    <div class="card" style="border: 1px solid #FFD600;">
+        <span class="card-title">📝 Shopping Notes</span>
+        <div id="notesContainer"></div>
+        <div style="display: flex; gap: 5px; margin-top: 8px;">
+            <input type="text" id="noteInput" placeholder="Add note...">
+            <button onclick="addNote()" class="btn-add" style="margin:0; width:70px; background:#FFD600; color:#000;">Add</button>
+        </div>
+    </div>
 
-<div class="total-banner">
-<span style="font-size: 12px; font-weight: 600;">Total Expense</span>
-<span class="total-val" id="monthlyTotalDisplay">$0.00</span>
-</div>
+    <div class="total-banner">
+        <span style="font-size: 12px; font-weight: 600;">Total Expense</span>
+        <span class="total-val" id="monthlyTotalDisplay">$0.00</span>
+    </div>
 
-<button class="btn-template-toggle" onclick="toggleTemplateView()">⚙️ Settings & Templates</button>
+    <button class="btn-template-toggle" onclick="toggleTemplateView()">⚙️ Settings & Templates</button>
 
-<div id="templateSection" class="card" style="display:none; border: 1px dashed #007AFF;">
-<span class="card-title">0. Manage Users</span>
-<div id="userManagementList" style="margin-bottom: 10px;"></div>
-<div style="display:flex; gap:5px; margin-bottom:15px;">
-<input type="text" id="newUserName" placeholder="New User Name">
-<button onclick="addNewUser()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
-</div>
-<hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+    <div id="templateSection" class="card" style="display:none; border: 1px dashed #007AFF;">
+        <span class="card-title">User & Tab Management</span>
+        <div id="userManagementList" style="margin-bottom: 10px;"></div>
+        <div id="ledgerTabManager" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
+        <div style="display:flex; gap:5px; margin-bottom:15px;">
+            <input type="text" id="newLedgerTabName" placeholder="New Category">
+            <button onclick="addLedgerTab()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add Tab</button>
+        </div>
+        <span class="card-title">Templates</span>
+        <div id="templateList" style="margin-bottom:10px;"></div>
+        <button onclick="applyTemplates()" class="btn-add" style="background:var(--success); margin-bottom:10px;">Apply Templates</button>
+    </div>
 
-<span class="card-title">1. Manage Ledger Tabs</span>
-<div id="ledgerTabManager" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
-<div style="display:flex; gap:5px; margin-bottom:15px;">
-<input type="text" id="newLedgerTabName" placeholder="New Category">
-<button onclick="addLedgerTab()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
-</div>
+    <div class="card">
+        <span class="card-title">Add Expense</span>
+        <div id="quickTagsContainer" style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap;"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="itemName" placeholder="Item Name">
+            <input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
+        </div>
+        <span class="label-sm">Who Paid?</span>
+        <div class="split-selector" id="payerSelector"></div>
+        <span class="label-sm">Split Between:</span>
+        <div class="split-selector" id="splitSelector"></div>
+        <button onclick="addItem()" class="btn-add">Add to List</button>
+    </div>
 
-<span class="card-title">2. Custom Quick Tags</span>
-<div id="customTagsList" style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;"></div>
-<div style="display:flex; gap:5px; margin-bottom:15px;">
-<input type="text" id="newTagName" placeholder="New tag">
-<button onclick="addCustomTag()" class="btn-add" style="margin:0; width:80px; font-size:11px;">Add</button>
-</div>
+    <div class="card">
+        <span class="card-title">Checklist (Tap to Pay)</span>
+        <div id="listContainer"></div>
+        <button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear Month</button>
+    </div>
 
-<span class="card-title">3. Manage Templates</span>
-<div id="templateList" style="margin-bottom: 10px;"></div>
-<div style="display:flex; gap:5px; margin-bottom:5px;">
-<input type="text" id="tempName" placeholder="Name">
-<input type="number" id="tempAmount" placeholder="$" style="width:35%">
-</div>
-<input type="text" id="tempNote" placeholder="Notes" style="margin-bottom: 8px; font-size: 12px;">
-<span class="label-sm">Who usually pays?</span>
-<div class="split-selector" id="tempPayerSelector"></div>
-<div class="toggle-container">
-<input type="checkbox" id="tempCustomSplitToggle" onchange="toggleTempCustomInputs()"> 
-<label for="tempCustomSplitToggle">Use Custom Split Amounts ($)</label>
-</div>
-<span class="label-sm">Split between:</span>
-<div class="split-selector" id="tempSplitSelector"></div>
-<div id="tempCustomAmountsContainer" style="display:none; gap:5px; margin-bottom:10px;"></div>
-<div style="display:flex; gap:8px;">
-<button onclick="addTemplateItem()" class="btn-add" style="background:#8E8E93;">Save Template</button>
-<button onclick="applyTemplates()" class="btn-add" style="background:var(--success);">Apply All Now</button>
-</div>
-</div>
-
-<div class="card">
-<span class="card-title">Add Expense</span>
-<div id="quickTagsContainer" style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap;"></div>
-<div style="display: flex; gap: 8px; margin-bottom: 8px;">
-<input type="text" id="itemName" placeholder="Item Name">
-<input type="number" id="itemAmount" placeholder="$" style="width: 35%;">
-</div>
-<input type="text" id="itemNote" placeholder="Notes" style="margin-bottom: 8px; font-size: 12px;">
-<span class="label-sm">Who Paid?</span>
-<div class="split-selector" id="payerSelector"></div>
-<div class="toggle-container">
-<input type="checkbox" id="customSplitToggle" onchange="toggleCustomInputs()"> 
-<label for="customSplitToggle">Use Custom Split Amounts ($)</label>
-</div>
-<span class="label-sm">Split Between:</span>
-<div class="split-selector" id="splitSelector"></div>
-<div id="customAmountsContainer" style="display:none; gap:5px; margin-bottom:10px;"></div>
-<button onclick="addItem()" class="btn-add">Add to List</button>
-</div>
-
-<div class="card">
-<span class="card-title">Checklist</span>
-<div id="listContainer"></div>
-<button onclick="clearAllExpenses()" class="btn-add" style="background:none; color:var(--danger); border:1px solid var(--danger); font-size:11px; margin-top:15px; padding:6px;">🗑 Clear Month</button>
-</div>
-
-<div class="summary-panel">
-<div class="summary-scroll" id="summaryGrid"></div>
-<button onclick="calculateSettlement()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:700; margin-top:10px;">📊 Calculate Transfer Path</button>
-</div>
+    <div class="summary-panel">
+        <div class="summary-scroll" id="summaryGrid"></div>
+        <button onclick="calculateSettlement()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:8px; font-size:11px; font-weight:700; margin-top:10px;">📊 Calculate Settlement</button>
+    </div>
 </div>
 
 <script>
@@ -248,7 +199,7 @@ const APP_PASSWORD = "  ";
 let viewDate = new Date(); viewDate.setDate(1);
 let roommateNames = ["Ray", "Roy", "Irene"];
 let templates = [];
-let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
+let quickTags = ["🏠 Rent", "🛒 Grocery", "⛽ Gas"];
 let allExpenses = {};
 let shoppingNotes = []; 
 let ledgerTabs = ["Food", "Grocery"];
@@ -256,70 +207,62 @@ let ledgerData = {};
 let activeLedgerTab = "Food";
 let db;
 
-function checkPassword() {
-if (document.getElementById('passInput').value === APP_PASSWORD) {
-sessionStorage.setItem('roomiePay_auth', 'true');
-unlockApp();
-} else { alert("Incorrect"); }
-}
-
-function unlockApp() {
-document.getElementById('loginOverlay').style.display = 'none';
-document.getElementById('mainContent').style.display = 'block';
-initApp();
-}
-
 window.onload = () => { 
-    if (sessionStorage.getItem('roomiePay_auth') === 'true') unlockApp(); 
-    // Set default date to today
+    if (sessionStorage.getItem('roomiePay_auth') === 'true') unlockApp();
     document.getElementById('ledgerDateInput').valueAsDate = new Date();
 };
 
-function initApp() {
-const config = {
-apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
-authDomain: "roomiepay-76a38.firebaseapp.com",
-databaseURL: "https://roomiepay-76a38-default-rtdb.firebaseio.com",
-projectId: "roomiepay-76a38"
-};
-if (!firebase.apps.length) firebase.initializeApp(config);
-db = firebase.database();
-db.ref('roomiePay_v11').on('value', (snap) => {
-const data = snap.val();
-if (data) {
-roommateNames = data.names || ["Ray", "Roy", "Irene"];
-templates = data.templates || [];
-quickTags = data.quickTags || ["🏠 Rent", "🛒 Grocery", "⛽ Gas", "💳 Credit"];
-allExpenses = data.expenses || {};
-shoppingNotes = data.notes || []; 
-ledgerTabs = data.ledgerTabs || ["Food", "Grocery"];
-ledgerData = data.ledgerData || {};
-if(!ledgerTabs.includes(activeLedgerTab)) activeLedgerTab = ledgerTabs[0];
+function checkPassword() {
+    if (document.getElementById('passInput').value === APP_PASSWORD) {
+        sessionStorage.setItem('roomiePay_auth', 'true');
+        unlockApp();
+    } else { alert("Wrong Password"); }
 }
-render();
-document.getElementById('cloudStatus').innerText = "● Cloud Synced";
-});
+
+function unlockApp() {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    initApp();
+}
+
+function initApp() {
+    const config = {
+        apiKey: "AIzaSyDtpJleIfumVt_yS0F3JDGMyrm0disdtp4",
+        authDomain: "roomiepay-76a38.firebaseapp.com",
+        databaseURL: "https://roomiepay-76a38-default-rtdb.firebaseio.com",
+        projectId: "roomiepay-76a38"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(config);
+    db = firebase.database();
+    db.ref('roomiePay_v11').on('value', (snap) => {
+        const data = snap.val();
+        if (data) {
+            roommateNames = data.names || ["Ray", "Roy", "Irene"];
+            templates = data.templates || [];
+            allExpenses = data.expenses || {};
+            shoppingNotes = data.notes || []; 
+            ledgerTabs = data.ledgerTabs || ["Food", "Grocery"];
+            ledgerData = data.ledgerData || {};
+            quickTags = data.quickTags || ["🏠 Rent", "🛒 Grocery"];
+        }
+        render();
+        document.getElementById('cloudStatus').innerText = "● Cloud Synced";
+    });
 }
 
 window.pushToCloud = () => db.ref('roomiePay_v11').set({ 
-names: roommateNames, templates, quickTags, expenses: allExpenses, notes: shoppingNotes,
-ledgerTabs, ledgerData
+    names: roommateNames, templates, expenses: allExpenses, notes: shoppingNotes,
+    ledgerTabs, ledgerData, quickTags
 });
 
-// LEDGER LOGIC
+// NEW FEATURES
 window.toggleLedgerFold = () => {
     const content = document.getElementById('ledgerFoldableContent');
     const icon = document.getElementById('ledgerFoldIcon');
-    if(content.style.display === 'none') {
-        content.style.display = 'block';
-        icon.innerText = '▲ Collapse';
-    } else {
-        content.style.display = 'none';
-        icon.innerText = '▼ Expand';
-    }
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    icon.innerText = isHidden ? '▲ Collapse' : '▼ Expand';
 };
-
-window.setActiveTab = (tab) => { activeLedgerTab = tab; render(); };
 
 window.addLedgerTab = () => {
     const val = document.getElementById('newLedgerTabName').value.trim();
@@ -331,157 +274,156 @@ window.addLedgerTab = () => {
 };
 
 window.removeLedgerTab = (tab) => {
-    if(["Food", "Grocery"].includes(tab)) {
-        alert("Cannot delete default Food/Grocery tabs.");
-        return;
-    }
-    if(confirm(`Delete category "${tab}" and all its data?`)) {
+    if(["Food", "Grocery"].includes(tab)) return alert("Cannot delete default tabs");
+    if(confirm(`Delete ${tab}?`)) {
         ledgerTabs = ledgerTabs.filter(t => t !== tab);
         pushToCloud();
     }
 };
 
 window.addLedgerEntry = () => {
-    const dateVal = document.getElementById('ledgerDateInput').value;
+    const dateInput = document.getElementById('ledgerDateInput').value;
     const content = document.getElementById('ledgerContentInput').value.trim();
     const amount = parseFloat(document.getElementById('ledgerAmountInput').value);
-    
     if(content && !isNaN(amount)) {
         const key = getMonthKey();
         if(!ledgerData[key]) ledgerData[key] = {};
         if(!ledgerData[key][activeLedgerTab]) ledgerData[key][activeLedgerTab] = [];
-        
-        // Format date from input or use current
-        const displayDate = dateVal ? dateVal.split('-').reverse().slice(0,2).join('/') : new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
-
-        ledgerData[key][activeLedgerTab].push({
-            id: Date.now(),
-            date: displayDate,
-            content,
-            amount
-        });
+        const dateStr = dateInput ? dateInput.split('-').reverse().slice(0,2).join('/') : new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
+        ledgerData[key][activeLedgerTab].push({ id: Date.now(), date: dateStr, content, amount });
         document.getElementById('ledgerContentInput').value = '';
         document.getElementById('ledgerAmountInput').value = '';
         pushToCloud();
     }
 };
 
-window.deleteLedgerEntry = (id) => {
-    const key = getMonthKey();
-    ledgerData[key][activeLedgerTab] = ledgerData[key][activeLedgerTab].filter(e => e.id !== id);
+// CORE APP LOGIC
+window.addItem = () => {
+    const name = document.getElementById('itemName').value;
+    const amount = parseFloat(document.getElementById('itemAmount').value);
+    const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
+    const splitBetween = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
+    if (name && !isNaN(amount)) {
+        const key = getMonthKey();
+        if (!allExpenses[key]) allExpenses[key] = [];
+        allExpenses[key].push({
+            id: Date.now(), name, amount, payers, splitBetween,
+            paidBy: splitBetween.map((p, i) => p && payers[i])
+        });
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemAmount').value = '';
+        pushToCloud();
+    }
+};
+
+window.togglePaid = (id, idx) => {
+    const item = allExpenses[getMonthKey()].find(e => e.id === id);
+    if (item) { item.paidBy[idx] = !item.paidBy[idx]; pushToCloud(); }
+};
+
+window.deleteItem = (id) => {
+    allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id);
     pushToCloud();
 };
 
-// ORIGINAL FUNCTIONS (KEPT)
-window.addNewUser = () => {
-const val = document.getElementById('newUserName').value.trim();
-if(val) { roommateNames.push(val); document.getElementById('newUserName').value = ''; pushToCloud(); }
-};
-window.updateUser = (idx, newName) => { if(newName) { roommateNames[idx] = newName.trim(); pushToCloud(); } };
-window.removeUser = (idx) => { if(confirm("Delete user?")) { roommateNames.splice(idx, 1); pushToCloud(); } };
-
-window.addItem = () => {
-const name = document.getElementById('itemName').value;
-const amount = parseFloat(document.getElementById('itemAmount').value);
-const note = document.getElementById('itemNote').value.trim();
-const payers = Array.from(document.querySelectorAll('.payer-check')).map(n => n.checked);
-const participants = Array.from(document.querySelectorAll('.split-check')).map(n => n.checked);
-const isCustom = document.getElementById('customSplitToggle').checked;
-let customAmounts = isCustom ? Array.from(document.querySelectorAll('#customAmountsContainer .custom-val-input')).map(i => parseFloat(i.value) || 0) : null;
-
-if (name && !isNaN(amount)) {
-const key = getMonthKey();
-if (!allExpenses[key]) allExpenses[key] = [];
-allExpenses[key].push({ 
-id: Date.now(), name, amount, note, payers, splitBetween: participants, 
-paidBy: participants.map((p, i) => p && (payers[i] || false)), customAmounts 
-});
-['itemName','itemAmount','itemNote'].forEach(id => document.getElementById(id).value = '');
-pushToCloud();
-}
-};
-
-window.addNote = () => {
-const input = document.getElementById('noteInput');
-if(input.value.trim()) {
-shoppingNotes.push({ id: Date.now(), text: input.value.trim() });
-input.value = ''; pushToCloud();
-}
+window.calculateSettlement = () => {
+    const items = allExpenses[getMonthKey()] || [];
+    let balances = roommateNames.map(() => 0);
+    items.forEach(item => {
+        const payerIdx = item.payers.indexOf(true);
+        if (payerIdx === -1) return;
+        const participants = item.splitBetween.filter(Boolean).length;
+        const share = item.amount / participants;
+        roommateNames.forEach((_, i) => {
+            if (item.splitBetween[i] && !item.paidBy[i]) {
+                balances[i] -= share;
+                balances[payerIdx] += share;
+            }
+        });
+    });
+    let results = [];
+    let debtors = balances.map((b, i) => ({i, b})).filter(x => x.b < -0.01);
+    let creditors = balances.map((b, i) => ({i, b})).filter(x => x.b > 0.01);
+    // Simple settlement logic
+    debtors.forEach(d => {
+        creditors.forEach(c => {
+            if (d.b === 0 || c.b === 0) return;
+            let move = Math.min(-d.b, c.b);
+            results.push(`<b>${roommateNames[d.i]}</b> → $${move.toFixed(2)} → <b>${roommateNames[c.i]}</b>`);
+            d.b += move; c.b -= move;
+        });
+    });
+    document.getElementById('settlementResults').innerHTML = results.length ? results.join('<br>') : "Clear! 🎉";
+    document.getElementById('settlementModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
 };
 
-window.deleteNote = (id) => { shoppingNotes = shoppingNotes.filter(n => n.id !== id); pushToCloud(); };
-window.toggleTemplateView = () => { const s = document.getElementById('templateSection'); s.style.display = (s.style.display==='block'?'none':'block'); };
-window.changeMonth = (offset) => { viewDate.setMonth(viewDate.getMonth() + offset); render(); };
-function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth() + 1).toString().padStart(2, '0'); }
-
-// UI RENDER
-function render() {
-const key = getMonthKey();
-const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
-
-// Render Ledger Tabs
-document.getElementById('ledgerTabs').innerHTML = ledgerTabs.map(t => 
-    `<button class="tab-btn ${activeLedgerTab === t ? 'active' : ''}" onclick="setActiveTab('${t}')">${t}</button>`
-).join('');
-
-// Render Ledger Tab Manager in Settings
-document.getElementById('ledgerTabManager').innerHTML = ledgerTabs.map(t => 
-    `<div class="btn-template-toggle" style="margin:0; padding:4px 8px; font-size:10px; display:flex; align-items:center; gap:5px;">
-        <span>${t}</span>
-        ${!["Food", "Grocery"].includes(t) ? `<span style="color:red; font-weight:800;" onclick="removeLedgerTab('${t}')">×</span>` : ''}
-    </div>`
-).join('');
-
-// Render Ledger Entries
-const currentLedgerEntries = (ledgerData[key] && ledgerData[key][activeLedgerTab]) || [];
-let ledgerSum = 0;
-document.getElementById('ledgerBody').innerHTML = currentLedgerEntries.map(e => {
-    ledgerSum += e.amount;
-    return `<tr><td>${e.date}</td><td>${e.content}</td><td>$${e.amount.toFixed(2)}</td>
-            <td><button class="delete-btn" onclick="deleteLedgerEntry(${e.id})">✕</button></td></tr>`;
-}).join('');
-document.getElementById('ledgerTotal').innerText = `Total ${activeLedgerTab}: $${ledgerSum.toFixed(2)}`;
-
-// Rest of original render logic
-document.getElementById('notesContainer').innerHTML = shoppingNotes.map(n => `<div class="note-item"><span class="note-text">${n.text}</span><button class="delete-btn" onclick="deleteNote(${n.id})">✕</button></div>`).join('');
-document.getElementById('userManagementList').innerHTML = roommateNames.map((name, i) => `<div style="display:flex; gap:5px; margin-bottom:5px; align-items:center;"><input type="text" value="${name}" onchange="updateUser(${i}, this.value)" style="padding:4px; font-size:12px;"><button class="delete-btn" style="width:25px; height:25px;" onclick="removeUser(${i})">✕</button></div>`).join('');
-document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> ${n}</label>`).join('');
-document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
-document.getElementById('customAmountsContainer').innerHTML = roommateNames.map(n => `<input type="number" class="custom-val-input" placeholder="${n} $">`).join('');
-document.getElementById('quickTagsContainer').innerHTML = quickTags.map(tag => `<button class="btn-template-toggle" onclick="fillItem('${tag}')">${tag}</button>`).join('');
-
-const monthItems = allExpenses[key] || [];
-document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((s,i)=>s+i.amount,0).toFixed(2)}`;
-
-const container = document.getElementById('listContainer');
-container.innerHTML = '';
-monthItems.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'item-row';
-    div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)})</span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>`;
-    container.appendChild(div);
-});
-
-// Settlement Logic (Simplified for this version)
-let userFinalBalance = roommateNames.map(() => 0);
-monthItems.forEach(item => {
-    const payersCount = item.payers.filter(Boolean).length;
-    roommateNames.forEach((_, idx) => {
-        let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
-        if (share > 0 && !item.paidBy[idx]) {
-            userFinalBalance[idx] -= share;
-            item.payers.forEach((isPayer, pIdx) => { if (isPayer) userFinalBalance[pIdx] += (share / payersCount); });
+window.openDetails = (idx) => {
+    const name = roommateNames[idx];
+    const items = allExpenses[getMonthKey()] || [];
+    let html = `<div style="font-size:13px;">`;
+    items.forEach(item => {
+        if (item.splitBetween[idx]) {
+            const share = item.amount / item.splitBetween.filter(Boolean).length;
+            html += `<div class="detail-row"><span>${item.paidBy[idx] ? '✅' : '❌'} ${item.name}</span><b>$${share.toFixed(2)}</b></div>`;
         }
     });
-});
-document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `<div class="user-summary-card"><div class="user-name-tag">${name}</div><div class="grand-total-tag">$${userFinalBalance[i].toFixed(2)}</div></div>`).join('');
+    html += `</div>`;
+    document.getElementById('detailUserName').innerText = name + "'s Share";
+    document.getElementById('detailContent').innerHTML = html;
+    document.getElementById('detailModal').style.display = 'block';
+    document.getElementById('modalOverlay').style.display = 'block';
+};
+
+function render() {
+    const key = getMonthKey();
+    const monthItems = allExpenses[key] || [];
+    document.getElementById('monthDisplay').innerText = viewDate.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+    
+    // Ledger Tabs
+    document.getElementById('ledgerTabs').innerHTML = ledgerTabs.map(t => `<button class="tab-btn ${activeLedgerTab===t?'active':''}" onclick="activeLedgerTab='${t}';render()">${t}</button>`).join('');
+    document.getElementById('ledgerTabManager').innerHTML = ledgerTabs.map(t => `<div class="btn-template-toggle">${t} <span onclick="removeLedgerTab('${t}')" style="color:red">×</span></div>`).join('');
+    
+    // Ledger Table
+    const entries = (ledgerData[key] && ledgerData[key][activeLedgerTab]) || [];
+    let lSum = 0;
+    document.getElementById('ledgerBody').innerHTML = entries.map(e => {
+        lSum += e.amount;
+        return `<tr><td>${e.date}</td><td>${e.content}</td><td>$${e.amount}</td><td><button class="delete-btn" onclick="deleteLedgerEntry(${e.id})">✕</button></td></tr>`;
+    }).join('');
+    document.getElementById('ledgerTotal').innerText = `Total: $${lSum.toFixed(2)}`;
+
+    // Checklist
+    const listContainer = document.getElementById('listContainer');
+    listContainer.innerHTML = monthItems.map(item => `
+        <div class="item-row">
+            <div class="item-header"><span>${item.name} ($${item.amount})</span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>
+            <div class="item-pills">
+                ${roommateNames.map((name, i) => item.splitBetween[i] ? `<div class="status-pill ${item.paidBy[i]?'pill-paid':''}" onclick="togglePaid(${item.id}, ${i})">${name} ${item.paidBy[i]?'✅':'❌'}</div>` : '').join('')}
+            </div>
+        </div>
+    `).join('');
+
+    // Summary Cards
+    document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => `
+        <div class="user-summary-card" onclick="openDetails(${i})">
+            <div class="user-name-tag">${name}</div>
+            <div style="font-weight:800; font-size:14px;">View List</div>
+        </div>
+    `).join('');
+    
+    // Selectors
+    document.getElementById('payerSelector').innerHTML = roommateNames.map(n => `<label class="split-pill payer-pill"><input type="checkbox" class="payer-check"> ${n}</label>`).join('');
+    document.getElementById('splitSelector').innerHTML = roommateNames.map(n => `<label class="split-pill"><input type="checkbox" class="split-check" checked> ${n}</label>`).join('');
+    document.getElementById('monthlyTotalDisplay').innerText = `$${monthItems.reduce((a,b)=>a+b.amount,0).toFixed(2)}`;
 }
 
-window.fillItem = (name) => { document.getElementById('itemName').value = name; };
-window.deleteItem = (id) => { allExpenses[getMonthKey()] = allExpenses[getMonthKey()].filter(e => e.id !== id); pushToCloud(); };
-window.closeAllModals = () => { document.querySelectorAll('.modal, #modalOverlay').forEach(el => el.style.display = 'none'); };
-window.toggleCustomInputs = () => { document.getElementById('customAmountsContainer').style.display = document.getElementById('customSplitToggle').checked ? 'flex' : 'none'; };
+window.changeMonth = (o) => { viewDate.setMonth(viewDate.getMonth()+o); render(); };
+function getMonthKey() { return viewDate.getFullYear() + "-" + (viewDate.getMonth()+1).toString().padStart(2,'0'); }
+window.closeAllModals = () => document.querySelectorAll('.modal, #modalOverlay').forEach(e=>e.style.display='none');
+window.toggleTemplateView = () => { const s=document.getElementById('templateSection'); s.style.display=s.style.display==='none'?'block':'none'; };
+window.addNote = () => { const i=document.getElementById('noteInput'); if(i.value){ shoppingNotes.push({id:Date.now(), text:i.value}); i.value=''; pushToCloud(); } };
+window.deleteLedgerEntry = (id) => { ledgerData[getMonthKey()][activeLedgerTab] = ledgerData[getMonthKey()][activeLedgerTab].filter(e=>e.id!==id); pushToCloud(); };
 </script>
 </body>
 </html>

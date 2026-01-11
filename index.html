@@ -142,9 +142,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 </div>
 
 <div class="card" style="border: 1px solid var(--primary); background: #f8fbff;">
-    <div onclick="toggleLedgerFold()" style="cursor: pointer; display: flex; justify-content: space-between;">
-        <span class="card-title">📊 Categorized Ledger</span>
+    <div onclick="toggleLedgerFold()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <span class="card-title" style="display: inline-block; margin-bottom:0;">📊 Adder</span>
+            <span id="ledgerPreviewSummary" style="font-size: 10px; color: #666; margin-left: 8px; font-weight: 600;"></span>
+        </div>
         <span id="ledgerFoldIcon" style="font-size: 11px; color: var(--primary);">▼ Expand</span>
+    </div>
     </div>
 
     <div id="ledgerFoldableContent" style="display: none; margin-top: 10px;">
@@ -582,6 +586,19 @@ const key = getMonthKey();
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 document.getElementById('monthDisplay').innerText = monthNames[viewDate.getMonth()] + " " + viewDate.getFullYear();
 
+// --- 1. 計算所有 Ledger 分類的預覽總數 ---
+let previewParts = [];
+ledgerTabs.forEach(tab => {
+    const entries = (ledgerData[key] && ledgerData[key][tab]) || [];
+    const sum = entries.reduce((s, e) => s + e.amount, 0);
+    if (sum > 0) {
+        previewParts.push(`${tab}: $${sum.toFixed(0)}`);
+    }
+});
+// 更新 Card Title 隔離嘅細字預覽
+const previewText = previewParts.length > 0 ? " | " + previewParts.join(" | ") : "";
+document.getElementById('ledgerPreviewSummary').innerText = previewText;
+
 // Render Ledger Tabs
 document.getElementById('ledgerTabs').innerHTML = ledgerTabs.map(t => 
     `<button class="tab-btn ${activeLedgerTab === t ? 'active' : ''}" onclick="setActiveTab('${t}')">${t}</button>`
@@ -660,5 +677,6 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
 
 

@@ -615,7 +615,7 @@ ledgerTabs.forEach(tab => {
 
 // 更新 Card Title 隔離嘅細字預覽 (加入 Σ 符號代表總和)
 const previewText = previewParts.length > 0 
-    ? " | " + previewParts.join(" | ") + ` | (Σ $${grandLedgerTotal.toFixed(0)})` 
+    ? " | " + previewParts.join(" | ") + ` | (Total :$${grandLedgerTotal.toFixed(0)})` 
     : "";
 document.getElementById('ledgerPreviewSummary').innerText = previewText;
 
@@ -697,6 +697,7 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
 
 
 

@@ -303,20 +303,7 @@ window.fillItem = (name, targetId = 'itemName') => {
 document.getElementById(targetId).value = name;
 if(targetId === 'itemName') document.getElementById('itemAmount').focus();
 };
-window.updateItemAmount = (id, newVal) => {
-    const newAmount = parseFloat(newVal);
-    if (isNaN(newAmount)) return;
-    
-    const key = getMonthKey();
-    const item = allExpenses[key].find(e => e.id === id);
-    if (item) {
-        item.amount = newAmount;
-        // 如果是自定義金額分配，通常需要提醒用戶重新檢查，
-        // 但基本等分的話，render() 會自動重新計算。
-        pushToCloud();
-    }
-};
-    
+
 function checkPassword() {
 if (document.getElementById('passInput').value === APP_PASSWORD) {
 sessionStorage.setItem('roomiePay_auth', 'true');
@@ -677,81 +664,39 @@ let userFinalBalance = roommateNames.map(() => 0);
 
 const container = document.getElementById('listContainer');
 container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
-
 monthItems.forEach(item => {
-    // 1. 計算金額分配
     const payersCount = item.payers.filter(Boolean).length;
-    item.payers.forEach((isPayer, idx) => { 
-        if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); 
-    });
-
+    item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
     roommateNames.forEach((_, idx) => {
         let share = item.customAmounts ? item.customAmounts[idx] : (item.splitBetween[idx] ? item.amount / item.splitBetween.filter(Boolean).length : 0);
         userTotalShare[idx] += share;
         if (share > 0 && !item.paidBy[idx]) {
             userFinalBalance[idx] -= share;
-            item.payers.forEach((isPayer, pIdx) => { 
-                if (isPayer) userFinalBalance[pIdx] += (share / payersCount); 
-            });
+            item.payers.forEach((isPayer, pIdx) => { if (isPayer) userFinalBalance[pIdx] += (share / payersCount); });
         }
     });
-
-    // 2. 建立每一行的 DOM
     const div = document.createElement('div');
     div.className = 'item-row';
-
-    // 修正了 Template Literal 同 HTML 標籤閉合問題
-    div.innerHTML = `
-        <div class="item-header">
-            <span>
-                ${item.name} 
-                ($<input type="number" 
-                    step="0.01"
-                    value="${item.amount}" 
-                    onchange="updateItemAmount(${item.id}, this.value)" 
-                    style="width: 60px; border: none; border-bottom: 1px dashed #ccc; font-weight: 700; color: inherit; background: transparent; font-size: 13px; outline: none; margin: 0; padding: 0;">)
-                <span class="payer-info" style="font-size: 11px; color: #666; margin-left: 4px;">
-                    ${roommateNames.filter((_, idx) => item.payers[idx]).join(' & ')} paid
-                </span>
-            </span>
-            <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
-        </div>
-        ${item.note ? `<div class="item-desc" style="font-size: 12px; color: #888; margin-top: 4px;">${item.note}</div>` : ''}
-    `;
-    
+    div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>${item.note ? `<div class="item-desc">${item.note}</div>` : ''}<div style="display:flex; gap:5px; margin-top:8px;">${roommateNames.map((name, index) => { const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index]; if (!hasShare) return `<div style="flex:1"></div>`; return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;"><input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}</label>`; }).join('')}</div>`;
     container.appendChild(div);
-}); // <-- 補返呢個 forEach 的結束符
+});
 
-// 3. 更新 Summary Grid
 document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
     const balance = userFinalBalance[i];
     const balanceText = balance >= 0 ? `GET: $${balance.toFixed(2)}` : `OWE: $${Math.abs(balance).toFixed(2)}`;
     const balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
-    
-    return `
-        <div class="user-summary-card" onclick="openDetails(${i})">
-            <div class="user-name-tag">${name} ℹ️</div>
-            <div class="stat-box">
-                <div class="stat-row"><span>Paid:</span> <span>$${userTotalPaidUpfront[i].toFixed(2)}</span></div>
-                <div class="stat-row"><span>Share:</span> <span>$${userTotalShare[i].toFixed(2)}</span></div>
-            </div>
-            <div class="grand-total-tag" style="color: ${balanceColor}">${balanceText}</div>
-        </div>`;
+    return `<div class="user-summary-card" onclick="openDetails(${i})"><div class="user-name-tag">${name} ℹ️</div><div class="stat-box"><div class="stat-row"><span>Paid:</span> <span>$${userTotalPaidUpfront[i].toFixed(2)}</span></div><div class="stat-row"><span>Share:</span> <span>$${userTotalShare[i].toFixed(2)}</span></div></div><div class="grand-total-tag" style="color: ${balanceColor}">${balanceText}</div></div>`;
 }).join('');
+}
 
-// 4. Service Worker 註冊
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW Registered'))
-            .catch(err => console.log('SW Registration failed', err));
-    });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW Registered'));
+  });
 }
 </script>
 </body>
 </html>
-
-
 
 
 

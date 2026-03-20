@@ -303,7 +303,20 @@ window.fillItem = (name, targetId = 'itemName') => {
 document.getElementById(targetId).value = name;
 if(targetId === 'itemName') document.getElementById('itemAmount').focus();
 };
-
+window.updateItemAmount = (id, newVal) => {
+    const newAmount = parseFloat(newVal);
+    if (isNaN(newAmount)) return;
+    
+    const key = getMonthKey();
+    const item = allExpenses[key].find(e => e.id === id);
+    if (item) {
+        item.amount = newAmount;
+        // 如果是自定義金額分配，通常需要提醒用戶重新檢查，
+        // 但基本等分的話，render() 會自動重新計算。
+        pushToCloud();
+    }
+};
+    
 function checkPassword() {
 if (document.getElementById('passInput').value === APP_PASSWORD) {
 sessionStorage.setItem('roomiePay_auth', 'true');
@@ -677,7 +690,22 @@ monthItems.forEach(item => {
     });
     const div = document.createElement('div');
     div.className = 'item-row';
-    div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>${item.note ? `<div class="item-desc">${item.note}</div>` : ''}<div style="display:flex; gap:5px; margin-top:8px;">${roommateNames.map((name, index) => { const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index]; if (!hasShare) return `<div style="flex:1"></div>`; return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;"><input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}</label>`; }).join('')}</div>`;
+    // 將原本的 ($${item.amount.toFixed(2)}) 換成一個隱形邊框的 input
+div.innerHTML = `<div class="item-header">
+    <span>
+        ${item.name} 
+        ($<input type="number" 
+            value="${item.amount}" 
+            onchange="updateItemAmount(${item.id}, this.value)" 
+            style="width: 60px; border: none; border-bottom: 1px dashed #ccc; font-weight: 700; color: inherit; background: transparent; font-size: 13px; -webkit-appearance: none; margin: 0; padding: 0;">)
+        <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span>
+    </span>
+    <button class="delete-btn" onclick="deleteItem(${item.id})">✕</button>
+</div>
+${item.note ? `<div class="item-desc">${item.note}</div>` : ''}
+<div style="display:flex; gap:5px; margin-top:8px;">
+;
+    
     container.appendChild(div);
 });
 

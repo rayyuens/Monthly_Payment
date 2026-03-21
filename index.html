@@ -391,12 +391,13 @@ window.removeLedgerTab = (tab) => {
 window.addLedgerEntry = () => {
     const content = document.getElementById('ledgerContentInput').value.trim();
     const amount = parseFloat(document.getElementById('ledgerAmountInput').value);
-    const dateInput = document.getElementById('ledgerDateInput').value;
+    const dateInput = document.getElementById('ledgerDateInput').value; // 格式係 YYYY-MM-DD
     
-    // 如果冇揀日期，就用今日 (格式: DD/MM)
     let finalDate;
     if (dateInput) {
-        const d = new Date(dateInput);
+        // 修正核心：將 YYYY-MM-DD 拆開用本地時間 constructor，防止 UTC 導致嘅 -1 日問題
+        const parts = dateInput.split('-');
+        const d = new Date(parts[0], parts[1] - 1, parts[2]); 
         finalDate = d.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
     } else {
         finalDate = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
@@ -409,12 +410,11 @@ window.addLedgerEntry = () => {
         
         ledgerData[key][activeLedgerTab].push({
             id: Date.now(),
-            date: finalDate, // 使用處理過嘅日期
+            date: finalDate,
             content,
             amount
         });
         
-        // 清空輸入框
         document.getElementById('ledgerContentInput').value = '';
         document.getElementById('ledgerAmountInput').value = '';
         document.getElementById('ledgerDateInput').value = ''; 

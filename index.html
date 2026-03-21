@@ -42,7 +42,15 @@ overscroll-behavior-y: contain;
     color: #007AFF; /* 確保顏色清楚 */
     font-size: 10px;
 }
-    
+/* 隱藏所有數字框嘅箭咀，防止霸位 */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+input[type=number] {
+    -moz-appearance: textfield; /* Firefox 專用 */
+}
 #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
 .login-card { background: white; padding: 20px; border-radius: 16px; text-align: center; width: 280px; }
 
@@ -290,6 +298,17 @@ let ledgerTabs = ["Food", "Grocery"];
 let ledgerData = {}; 
 let activeLedgerTab = "Food";
 let db;
+
+window.updateItemAmount = (id, newVal) => {
+    const key = getMonthKey();
+    const item = (allExpenses[key] || []).find(e => e.id === id);
+    const val = parseFloat(newVal);
+
+    if (item && !isNaN(val)) {
+        item.amount = val;
+        pushToCloud();
+    }
+};
     
 window.toggleLedgerFold = () => {
     const content = document.getElementById('ledgerFoldableContent');
@@ -372,12 +391,13 @@ window.removeLedgerTab = (tab) => {
 window.addLedgerEntry = () => {
     const content = document.getElementById('ledgerContentInput').value.trim();
     const amount = parseFloat(document.getElementById('ledgerAmountInput').value);
-    const dateInput = document.getElementById('ledgerDateInput').value;
+    const dateInput = document.getElementById('ledgerDateInput').value; // 格式係 YYYY-MM-DD
     
-    // 如果冇揀日期，就用今日 (格式: DD/MM)
     let finalDate;
     if (dateInput) {
-        const d = new Date(dateInput);
+        // 修正核心：將 YYYY-MM-DD 拆開用本地時間 constructor，防止 UTC 導致嘅 -1 日問題
+        const parts = dateInput.split('-');
+        const d = new Date(parts[0], parts[1] - 1, parts[2]); 
         finalDate = d.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
     } else {
         finalDate = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'});
@@ -390,12 +410,11 @@ window.addLedgerEntry = () => {
         
         ledgerData[key][activeLedgerTab].push({
             id: Date.now(),
-            date: finalDate, // 使用處理過嘅日期
+            date: finalDate,
             content,
             amount
         });
         
-        // 清空輸入框
         document.getElementById('ledgerContentInput').value = '';
         document.getElementById('ledgerAmountInput').value = '';
         document.getElementById('ledgerDateInput').value = ''; 
@@ -664,6 +683,7 @@ let userFinalBalance = roommateNames.map(() => 0);
 
 const container = document.getElementById('listContainer');
 container.innerHTML = monthItems.length === 0 ? '<p style="text-align:center;font-size:11px;color:gray">No expenses</p>' : '';
+
 monthItems.forEach(item => {
     const payersCount = item.payers.filter(Boolean).length;
     item.payers.forEach((isPayer, idx) => { if (isPayer) userTotalPaidUpfront[idx] += (item.amount / payersCount); });
@@ -675,11 +695,16 @@ monthItems.forEach(item => {
             item.payers.forEach((isPayer, pIdx) => { if (isPayer) userFinalBalance[pIdx] += (share / payersCount); });
         }
     });
+
     const div = document.createElement('div');
     div.className = 'item-row';
-    div.innerHTML = `<div class="item-header"><span>${item.name} ($${item.amount.toFixed(2)}) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>${item.note ? `<div class="item-desc">${item.note}</div>` : ''}<div style="display:flex; gap:5px; margin-top:8px;">${roommateNames.map((name, index) => { const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index]; if (!hasShare) return ''; return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;"><input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}</label>`; }).join('')}</div>`;
+    
+    // 核心修正：將所有內容連成一行，移除多餘空格同換行
+    div.innerHTML = `<div class="item-header"><span>${item.name} (<input type="number" value="${item.amount.toFixed(2)}" style="width:62px; font-size:12px; padding:2px; margin:0; border:1px solid #ddd; border-radius:3px; -webkit-appearance:none;" onchange="updateItemAmount(${item.id}, this.value)">) <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>${item.note ? `<div class="item-desc">${item.note}</div>` : ''}<div style="display:flex; gap:5px; margin-top:8px;">${roommateNames.map((name, index) => { const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index]; if (!hasShare) return ''; return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px; flex:1;"><input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}</label>`; }).join('')}</div>`;
+    
     container.appendChild(div);
 });
+
 
 document.getElementById('summaryGrid').innerHTML = roommateNames.map((name, i) => {
     const balance = userFinalBalance[i];
@@ -697,7 +722,5 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
-
 
 

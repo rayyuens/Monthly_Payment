@@ -698,11 +698,15 @@ monthItems.forEach(item => {
     div.className = 'item-row';
     div.innerHTML = `<div class="item-header"><span>
     
-${item.name} (
-<input type="number" value="${item.amount.toFixed(2)}"
-style="width:70px; font-size:12px; padding:2px;"
-onchange="updateItemAmount(${item.id}, this.value)">
-)    
+// ${item.name} (
+// <input type="number" value="${item.amount.toFixed(2)}"
+// style="width:70px; font-size:12px; padding:2px;"
+// onchange="updateItemAmount(${item.id}, this.value)">
+// )    
+
+// 修正後嘅版本：
+`${item.name} (<input type="number" value="${item.amount.toFixed(2)}" style="width:70px; font-size:12px; padding:2px; border:1px solid #ccc; border-radius:3px;" onchange="updateItemAmount(${item.id}, this.value)">)`
+
     <span class="payer-info">${roommateNames.filter((_, idx) => item.payers[idx]).join('&')} paid</span></span><button class="delete-btn" onclick="deleteItem(${item.id})">✕</button></div>${item.note ? `<div class="item-desc">${item.note}</div>` : ''}<div style="display:flex; gap:5px; margin-top:8px;">${roommateNames.map((name, index) => { const hasShare = item.customAmounts ? item.customAmounts[index] > 0 : item.splitBetween[index]; if (!hasShare) return `<div style="flex:1"></div>`; return `<label class="split-pill ${item.paidBy[index] ? 'pill-paid' : ''} ${item.payers[index] ? 'pill-locked' : ''}" style="padding:4px 0; font-size:10px;"><input type="checkbox" ${item.paidBy[index] ? 'checked' : ''} ${item.payers[index] ? 'disabled' : ''} onchange="togglePaid(${item.id}, ${index})"> ${name}</label>`; }).join('')}</div>`;
     container.appendChild(div);
 });
